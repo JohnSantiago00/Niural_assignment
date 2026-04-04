@@ -21,6 +21,16 @@ export function getOptionalEnv(key: EnvKey) {
   return process.env[key];
 }
 
+export function getSupabaseUrl() {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!value) {
+    throw new Error("Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL");
+  }
+
+  return value;
+}
+
 export function getSupabasePublishableKey() {
   const value =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??

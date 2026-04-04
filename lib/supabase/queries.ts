@@ -11,7 +11,7 @@ import type { RoleRecord } from "@/types/database";
  * Fetches all roles that should be publicly visible on the careers page.
  */
 export const getOpenRoles = cache(async (): Promise<RoleRecord[]> => {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("roles")
     .select("*")
@@ -34,7 +34,7 @@ export async function getRoleById(roleId: string): Promise<RoleRecord | null> {
     return null;
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("roles")
     .select("*")

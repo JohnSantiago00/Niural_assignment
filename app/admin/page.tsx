@@ -1,21 +1,61 @@
-export default function AdminPage() {
+/**
+ * Internal Phase B dashboard listing candidates already created by the public
+ * intake flow. It stays server-rendered so the page is deterministic and easy
+ * to reason about.
+ */
+import { AdminCandidateTable } from "@/components/admin-candidate-table";
+import { AdminFilterBar } from "@/components/admin-filter-bar";
+import { requireAdminUser } from "@/lib/auth/authorization";
+import {
+  getAdminRoles,
+  getCandidateDashboardRows,
+  parseCandidateDashboardFilters
+} from "@/lib/admin/queries";
+
+type AdminPageProps = {
+  searchParams: Promise<{
+    roleId?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+  }>;
+};
+
+export const revalidate = 0;
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
+  await requireAdminUser();
+  const resolvedSearchParams = await searchParams;
+  const filters = parseCandidateDashboardFilters(resolvedSearchParams);
+  const [roles, rows] = await Promise.all([
+    getAdminRoles(),
+    getCandidateDashboardRows(filters)
+  ]);
+
   return (
-    <section className="mx-auto max-w-4xl px-6 py-14">
-      <div className="rounded-[2rem] border border-line bg-panel p-8 shadow-card">
+    <section className="mx-auto max-w-7xl px-6 py-14">
+      <div className="max-w-3xl">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-accent">
-          Admin Placeholder
+          Internal Hiring Dashboard
         </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-          Phase A focuses on the public submission flow.
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900">
+          Review submitted candidates in one place.
         </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-          The admin surface is intentionally left minimal for now so the
-          implementation stays aligned with the assignment scope. Future phases can
-          build review queues, AI screening, and operations tooling on top of the
-          records created here.
+        <p className="mt-4 text-base leading-7 text-slate-600">
+          Phase B turns the Phase A intake pipeline into an internal review
+          surface. Operators can scan candidates, filter the list, and open a
+          single candidate profile for more detail.
         </p>
+      </div>
+
+      <div className="mt-10">
+        <AdminFilterBar roles={roles} filters={filters} />
+      </div>
+
+      <div className="mt-8">
+        <AdminCandidateTable rows={rows} />
       </div>
     </section>
   );
 }
-
