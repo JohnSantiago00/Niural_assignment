@@ -53,6 +53,12 @@ export type AuditLogRecord = {
   created_at: string;
 };
 
+export type AdminUserRecord = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -123,6 +129,16 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<AuditLogRecord>;
+        Relationships: [];
+      };
+      admin_users: {
+        Row: AdminUserRecord;
+        Insert: {
+          id?: string;
+          email: string;
+          created_at?: string;
+        };
+        Update: Partial<AdminUserRecord>;
         Relationships: [];
       };
     };

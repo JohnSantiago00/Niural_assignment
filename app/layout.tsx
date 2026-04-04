@@ -1,5 +1,14 @@
+/**
+ * Global app shell. The header now reflects whether the lightweight internal
+ * auth state is present so navigation matches the user's current identity and
+ * authorization level. Admin pages intentionally use a more internal-feeling
+ * nav so the operator experience does not mirror the public candidate flow.
+ */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { getAuthState } from "@/lib/auth/authorization";
+import { logoutUser } from "@/lib/auth/actions";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,11 +16,16 @@ export const metadata: Metadata = {
   description: "AI-powered candidate onboarding foundation for Phase A."
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const currentPath = headerStore.get("x-current-path") ?? "";
+  const isAdminRoute = currentPath.startsWith("/admin");
+  const authState = await getAuthState();
+
   return (
     <html lang="en">
       <body>
@@ -25,12 +39,34 @@ export default function RootLayout({
                 <Link href="/careers" className="hover:text-ink">
                   Careers
                 </Link>
-                <Link href="/apply" className="hover:text-ink">
-                  Apply
-                </Link>
-                <Link href="/admin" className="hover:text-ink">
-                  Admin
-                </Link>
+                {!isAdminRoute ? (
+                  <Link href="/apply" className="hover:text-ink">
+                    Apply
+                  </Link>
+                ) : null}
+                {!authState.user ? (
+                  <Link href="/login" className="hover:text-ink">
+                    Login
+                  </Link>
+                ) : null}
+                {authState.user && authState.isAdmin ? (
+                  <>
+                    <Link href="/admin" className="hover:text-ink">
+                      Admin
+                    </Link>
+                    <form action={logoutUser}>
+                      <button type="submit" className="hover:text-ink">
+                        Logout
+                      </button>
+                    </form>
+                  </>
+                ) : authState.user ? (
+                  <form action={logoutUser}>
+                    <button type="submit" className="hover:text-ink">
+                      Logout
+                    </button>
+                  </form>
+                ) : null}
               </nav>
             </div>
           </header>
@@ -40,4 +76,3 @@ export default function RootLayout({
     </html>
   );
 }
-
