@@ -1,17 +1,26 @@
+/**
+ * Public role detail page. It is intentionally simple: resolve the role ID,
+ * fetch the role, show the job description, and hand off to the apply flow.
+ */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRoleById } from "@/lib/supabase/queries";
 
 type RoleDetailPageProps = {
-  params: {
+  params: Promise<{
     roleId: string;
-  };
+  }>;
 };
 
 export const revalidate = 0;
 
+/**
+ * Next.js 16 resolves dynamic route params asynchronously in App Router page
+ * components, so `roleId` must be awaited before it is used.
+ */
 export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
-  const role = await getRoleById(params.roleId);
+  const { roleId } = await params;
+  const role = await getRoleById(roleId);
 
   if (!role) {
     notFound();
@@ -74,4 +83,3 @@ export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
     </section>
   );
 }
-

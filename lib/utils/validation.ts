@@ -1,6 +1,13 @@
+/**
+ * Shared Phase A validation rules. The client schema keeps the form responsive,
+ * while the server schema remains the source of truth for any actual write to
+ * Supabase.
+ */
 import { ZodError, z } from "zod";
 import { MAX_RESUME_SIZE_BYTES, isSupportedResumeFile } from "@/lib/utils/resume";
 
+// Optional URLs come from text inputs, so empty strings should behave like
+// "not provided" instead of failing URL validation.
 const optionalUrl = z
   .string()
   .trim()
@@ -10,6 +17,9 @@ const optionalUrl = z
     message: "Enter a valid URL."
   });
 
+/**
+ * Validation for the multipart payload received by the API route.
+ */
 export const applicationPayloadSchema = z.object({
   full_name: z.string().trim().min(2, "Full name is required.").max(120),
   email: z.string().trim().email("Enter a valid email address."),
@@ -27,6 +37,10 @@ export const applicationPayloadSchema = z.object({
     )
 });
 
+/**
+ * Validation for the client-side form state. The shape differs slightly from
+ * the API schema because React form state uses camelCase field names.
+ */
 export const clientApplicationSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is required.").max(120),
   email: z.string().trim().email("Enter a valid email address."),
@@ -44,6 +58,10 @@ export const clientApplicationSchema = z.object({
     )
 });
 
+/**
+ * Converts Zod issues into a flat `{ fieldName: message }` shape that the
+ * application form can render without knowing Zod internals.
+ */
 export function formatZodErrors(error: ZodError) {
   return error.issues.reduce<Record<string, string>>((accumulator, issue) => {
     const key = issue.path[0];
@@ -55,4 +73,3 @@ export function formatZodErrors(error: ZodError) {
     return accumulator;
   }, {});
 }
-

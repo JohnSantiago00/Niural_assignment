@@ -1,7 +1,12 @@
 "use client";
 
+/**
+ * Renders the public Phase A application form. This component owns the browser
+ * UX only: local form state, client-side validation, and the POST request to
+ * the application API. All durable business logic still lives on the server.
+ */
 import type { FormEvent, HTMLInputTypeAttribute } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MAX_RESUME_SIZE_BYTES } from "@/lib/utils/resume";
 import { clientApplicationSchema, formatZodErrors } from "@/lib/utils/validation";
 import { cn } from "@/lib/utils/cn";
@@ -11,6 +16,7 @@ import type { RoleRecord } from "@/types/database";
 type ApplicationFormProps = {
   roles: RoleRecord[];
   initialRoleId?: string;
+  lockedRole?: RoleRecord | null;
 };
 
 type FormState = {
@@ -35,9 +41,12 @@ const defaultState = (initialRoleId?: string): FormState => ({
 
 export function ApplicationForm({
   roles,
-  initialRoleId
+  initialRoleId,
+  lockedRole
 }: ApplicationFormProps) {
   const hasRoles = roles.length > 0;
+  const isRoleLocked = Boolean(lockedRole);
+  const resumeInputRef = useRef<HTMLInputElement | null>(null);
   const [formState, setFormState] = useState<FormState>(defaultState(initialRoleId));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -62,6 +71,11 @@ export function ApplicationForm({
     });
   };
 
+  /**
+   * Validates the local form state, then sends one multipart request to the
+   * backend. The API route takes over after this and performs all Phase A
+   * database/storage/email work.
+   */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
@@ -109,6 +123,9 @@ export function ApplicationForm({
           : "Application submitted successfully. We saved your application, but the confirmation email could not be sent."
       );
       setFormState(defaultState(initialRoleId));
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = "";
+      }
     } catch {
       setSubmitError("Something went wrong while submitting the form. Please try again.");
     } finally {
@@ -121,6 +138,25 @@ export function ApplicationForm({
       onSubmit={handleSubmit}
       className="rounded-[2rem] border border-line bg-panel p-8 shadow-card"
     >
+      {lockedRole ? (
+        <div className="mb-8 rounded-3xl border border-accent/20 bg-accent/5 px-5 py-5">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
+            Selected role
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+            {lockedRole.title}
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {lockedRole.team} · {lockedRole.location} · {lockedRole.remote_status} ·{" "}
+            {lockedRole.experience_level}
+          </p>
+          <p className="mt-3 text-sm text-slate-600">
+            You came here from this role&apos;s apply flow, so we&apos;ve locked it in for this
+            application.
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Field
           label="Full name"
@@ -165,34 +201,51 @@ export function ApplicationForm({
           error={fieldErrors.githubUrl}
         />
 
-        <div>
-          <label htmlFor="roleId" className="mb-2 block text-sm font-medium text-slate-800">
-            Role
-          </label>
-          <select
-            id="roleId"
-            name="roleId"
-            value={formState.roleId}
-            onChange={(event) => updateField("roleId", event.target.value)}
-            className={inputClassName(Boolean(fieldErrors.roleId))}
-            required
-          >
-            <option value="">Select a role</option>
-            {roles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.title} · {role.team}
-              </option>
-            ))}
-          </select>
-          {selectedRole ? (
+        {isRoleLocked && selectedRole ? (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-800">Role</label>
+            <div className="rounded-2xl border border-line bg-stone-50 px-4 py-3 text-sm text-slate-800">
+              <p className="font-medium">{selectedRole.title}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {selectedRole.team} · {selectedRole.location} · {selectedRole.remote_status} ·{" "}
+                {selectedRole.experience_level}
+              </p>
+            </div>
             <p className="mt-2 text-xs text-slate-500">
-              {selectedRole.location} · {selectedRole.remote_status} · {selectedRole.experience_level}
+              This role was preselected from the page you came from.
             </p>
-          ) : null}
-          {fieldErrors.roleId ? (
-            <p className="mt-2 text-sm text-red-600">{fieldErrors.roleId}</p>
-          ) : null}
-        </div>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="roleId" className="mb-2 block text-sm font-medium text-slate-800">
+              Role
+            </label>
+            <select
+              id="roleId"
+              name="roleId"
+              value={formState.roleId}
+              onChange={(event) => updateField("roleId", event.target.value)}
+              className={inputClassName(Boolean(fieldErrors.roleId))}
+              required
+            >
+              <option value="">Select a role</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.title} · {role.team}
+                </option>
+              ))}
+            </select>
+            {selectedRole ? (
+              <p className="mt-2 text-xs text-slate-500">
+                {selectedRole.location} · {selectedRole.remote_status} ·{" "}
+                {selectedRole.experience_level}
+              </p>
+            ) : null}
+            {fieldErrors.roleId ? (
+              <p className="mt-2 text-sm text-red-600">{fieldErrors.roleId}</p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div className="mt-6">
@@ -200,6 +253,7 @@ export function ApplicationForm({
           Resume
         </label>
         <input
+          ref={resumeInputRef}
           id="resume"
           name="resume"
           type="file"
@@ -252,6 +306,9 @@ type FieldProps = {
   type?: HTMLInputTypeAttribute;
 };
 
+/**
+ * Small shared input renderer for the plain text fields in the form.
+ */
 function Field({
   label,
   name,
@@ -282,6 +339,9 @@ function Field({
   );
 }
 
+/**
+ * Keeps the input styling logic in one place so field components stay readable.
+ */
 function inputClassName(hasError: boolean) {
   return cn(
     "w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400",

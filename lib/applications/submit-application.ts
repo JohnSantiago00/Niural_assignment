@@ -1,3 +1,9 @@
+/**
+ * Coordinates the Phase A submission workflow from validated form input to
+ * durable records in Supabase. This is the main "business flow" for the repo:
+ * role check -> duplicate check -> resume upload -> application -> candidate ->
+ * audit log -> confirmation email.
+ */
 import { sendApplicationConfirmationEmail } from "@/lib/email/send-application-confirmation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { deleteResumeFile, uploadResumeFile } from "@/lib/supabase/storage";
@@ -11,17 +17,31 @@ type SubmissionResult = {
   emailError?: string;
 };
 
+/**
+ * Accepts already-validated submission values from the API route and executes
+ * the deterministic Phase A workflow. Future phases can extend this function
+ * with scoring or downstream automation, but Phase A intentionally keeps
+ * orchestration here and nowhere else.
+ */
 export async function submitApplication(
   input: ApplicationSubmissionValues
 ): Promise<SubmissionResult> {
+  // Normalize candidate identity fields before using them for duplicate checks
+  // and storage paths. Lowercasing the email is important because the DB unique
+  // constraint should behave consistently regardless of input casing.
   const values = {
     ...input,
     email: input.email.trim().toLowerCase(),
-    full_name: input.full_name.trim()
+    full_name: input.full_name.trim(),
+    linkedin_url: input.linkedin_url.trim(),
+    portfolio_url: input.portfolio_url?.trim(),
+    github_url: input.github_url?.trim()
   };
 
   const supabase = createSupabaseAdminClient();
 
+  // Re-check the role at submit time so a stale form cannot apply to a role
+  // that was closed or removed after the page was loaded.
   const { data: role, error: roleError } = await supabase
     .from("roles")
     .select("id, title, status")
@@ -141,15 +161,29 @@ export async function submitApplication(
       emailError: emailResult.error
     };
   } catch (error) {
+    // Phase A keeps rollback logic readable in application code instead of
+    // hiding it in a database function. If candidate creation fails, deleting
+    // the application row also removes dependent candidate/audit rows via
+    // foreign key cascades.
     if (applicationId) {
-      await supabase.from("applications").delete().eq("id", applicationId);
+      const { error: rollbackError } = await supabase
+        .from("applications")
+        .delete()
+        .eq("id", applicationId);
+
+      if (rollbackError) {
+        console.error("Failed to roll back application after submission error", rollbackError);
+      }
     }
 
     if (resumeFilePath) {
-      await deleteResumeFile(resumeFilePath);
+      try {
+        await deleteResumeFile(resumeFilePath);
+      } catch (cleanupError) {
+        console.error("Failed to clean up uploaded resume after submission error", cleanupError);
+      }
     }
 
     throw error;
   }
 }
-

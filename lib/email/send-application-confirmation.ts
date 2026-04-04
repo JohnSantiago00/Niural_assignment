@@ -1,5 +1,10 @@
-import { Resend } from "resend";
+/**
+ * Thin email integration for Phase A. Confirmation delivery is intentionally
+ * best-effort: the application should stay saved even if Resend is unavailable
+ * or the provider call fails.
+ */
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
+import { Resend } from "resend";
 
 type SendConfirmationEmailParams = {
   candidateName: string;
@@ -7,10 +12,14 @@ type SendConfirmationEmailParams = {
   email: string;
 };
 
+/**
+ * Sends the confirmation email when Resend is configured, or returns a
+ * structured "skipped" result when email is disabled in local/dev environments.
+ */
 export async function sendApplicationConfirmationEmail({
   candidateName,
   roleTitle,
-  email
+  email,
 }: SendConfirmationEmailParams) {
   const apiKey = getOptionalEnv("RESEND_API_KEY");
   const fromEmail = getOptionalEnv("RESEND_FROM_EMAIL");
@@ -31,13 +40,13 @@ export async function sendApplicationConfirmationEmail({
 Thanks for applying to the ${roleTitle} role at Niural. We received your application and our team will review it shortly.
 
 Best,
-Niural Hiring Team`
+Niural Hiring Team`,
     });
 
     return { status: "sent" as const };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown email error";
+    const message =
+      error instanceof Error ? error.message : "Unknown email error";
     return { status: "failed" as const, error: message };
   }
 }
-
