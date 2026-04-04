@@ -3,15 +3,16 @@ import { notFound } from "next/navigation";
 import { getRoleById } from "@/lib/supabase/queries";
 
 type RoleDetailPageProps = {
-  params: {
+  params: Promise<{
     roleId: string;
-  };
+  }>;
 };
 
 export const revalidate = 0;
 
 export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
-  const role = await getRoleById(params.roleId);
+  const { roleId } = await params;
+  const role = await getRoleById(roleId);
 
   if (!role) {
     notFound();
@@ -74,4 +75,3 @@ export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
     </section>
   );
 }
-

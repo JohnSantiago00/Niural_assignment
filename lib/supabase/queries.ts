@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/utils/uuid";
 import type { RoleRecord } from "@/types/database";
 
 export const getOpenRoles = cache(async (): Promise<RoleRecord[]> => {
@@ -18,6 +19,10 @@ export const getOpenRoles = cache(async (): Promise<RoleRecord[]> => {
 });
 
 export async function getRoleById(roleId: string): Promise<RoleRecord | null> {
+  if (!isUuid(roleId)) {
+    return null;
+  }
+
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("roles")

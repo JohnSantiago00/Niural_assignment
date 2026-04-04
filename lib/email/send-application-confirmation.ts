@@ -1,5 +1,5 @@
-import { Resend } from "resend";
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
+import { Resend } from "resend";
 
 type SendConfirmationEmailParams = {
   candidateName: string;
@@ -10,7 +10,7 @@ type SendConfirmationEmailParams = {
 export async function sendApplicationConfirmationEmail({
   candidateName,
   roleTitle,
-  email
+  email,
 }: SendConfirmationEmailParams) {
   const apiKey = getOptionalEnv("RESEND_API_KEY");
   const fromEmail = getOptionalEnv("RESEND_FROM_EMAIL");
@@ -31,13 +31,13 @@ export async function sendApplicationConfirmationEmail({
 Thanks for applying to the ${roleTitle} role at Niural. We received your application and our team will review it shortly.
 
 Best,
-Niural Hiring Team`
+Niural Hiring Team`,
     });
 
     return { status: "sent" as const };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown email error";
+    const message =
+      error instanceof Error ? error.message : "Unknown email error";
     return { status: "failed" as const, error: message };
   }
 }
-
