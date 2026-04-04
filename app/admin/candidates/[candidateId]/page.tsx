@@ -17,6 +17,7 @@ import {
   getCandidateStatusLabel,
   type CandidateWorkflowStatus
 } from "@/lib/utils/candidate-status";
+import type { EducationEntry, PastEmployerEntry } from "@/types/database";
 
 type CandidateDetailPageProps = {
   params: Promise<{
@@ -39,6 +40,46 @@ function formatDateTime(value: string) {
 
 function formatAiScore(value: number | null) {
   return value === null ? "Not scored yet" : value.toFixed(1);
+}
+
+function formatShortlistDecision(score: number | null, threshold: number) {
+  if (score === null) {
+    return "Pending screening";
+  }
+
+  return score >= threshold ? "Meets threshold" : "Below threshold";
+}
+
+function renderEducationItem(item: EducationEntry) {
+  const details = [item.degree, item.field].filter(Boolean).join(" · ");
+
+  return (
+    <li
+      key={`${item.institution}-${item.degree ?? "unknown"}-${item.year ?? "na"}`}
+      className="rounded-2xl border border-line bg-panel px-4 py-3"
+    >
+      <p className="text-sm font-medium text-slate-900">{item.institution}</p>
+      <p className="mt-1 text-sm text-slate-600">{details || "Degree details not specified"}</p>
+      <p className="mt-2 text-xs uppercase tracking-[0.12em] text-slate-500">
+        {item.year ?? "Year not listed"}
+      </p>
+    </li>
+  );
+}
+
+function renderEmployerItem(item: PastEmployerEntry) {
+  return (
+    <li
+      key={`${item.company}-${item.title ?? "unknown"}-${item.duration ?? "na"}`}
+      className="rounded-2xl border border-line bg-panel px-4 py-3"
+    >
+      <p className="text-sm font-medium text-slate-900">{item.company}</p>
+      <p className="mt-1 text-sm text-slate-600">{item.title ?? "Title not specified"}</p>
+      <p className="mt-2 text-xs uppercase tracking-[0.12em] text-slate-500">
+        {item.duration ?? "Duration not listed"}
+      </p>
+    </li>
+  );
 }
 
 function OptionalLink({
@@ -90,7 +131,7 @@ export default async function CandidateDetailPage({
   const status = detail.candidate.current_status as CandidateWorkflowStatus;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-14">
+    <section className="mx-auto max-w-7xl px-6 py-14">
       <Link href="/admin" className="text-sm font-medium text-accent hover:text-accentDark">
         Back to dashboard
       </Link>
@@ -149,171 +190,102 @@ export default async function CandidateDetailPage({
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
-          <div className="space-y-8">
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">Candidate summary</h2>
-              <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-2">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Role applied for
+        <div className="mt-8 space-y-8">
+          <section>
+            <h2 className="text-lg font-semibold text-slate-900">Candidate summary</h2>
+            <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                  Role applied for
+                </p>
+                <p className="mt-2 text-sm text-slate-800">{detail.role.title}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Team</p>
+                <p className="mt-2 text-sm text-slate-800">{detail.role.team}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                  Current status
+                </p>
+                <p className="mt-2 text-sm text-slate-800">{getCandidateStatusLabel(status)}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                  Submission status
+                </p>
+                <p className="mt-2 text-sm text-slate-800">
+                  {detail.application.submission_status}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">AI screening result</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Assistant-generated screening grounded only in the uploaded resume and this role.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">AI score</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {formatAiScore(detail.candidate.ai_score)}
                   </p>
-                  <p className="mt-2 text-sm text-slate-800">{detail.role.title}</p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Team</p>
-                  <p className="mt-2 text-sm text-slate-800">{detail.role.team}</p>
-                </div>
-                <div>
+                <div className="rounded-2xl border border-line bg-panel px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Current status
-                  </p>
-                  <p className="mt-2 text-sm text-slate-800">{getCandidateStatusLabel(status)}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Submission status
+                    Shortlist recommendation
                   </p>
                   <p className="mt-2 text-sm text-slate-800">
-                    {detail.application.submission_status}
+                    {detail.screeningResult === null
+                      ? "Pending screening"
+                      : detail.screeningResult.shortlist_recommendation
+                        ? "Recommend shortlist"
+                        : "Do not recommend shortlist"}
                   </p>
                 </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">Profile links</h2>
-              <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-3">
-                <OptionalLink label="LinkedIn" href={detail.candidate.linkedin_url} />
-                <OptionalLink label="Portfolio" href={detail.candidate.portfolio_url} />
-                <OptionalLink label="GitHub" href={detail.candidate.github_url} />
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">Application record</h2>
-              <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-2">
-                <div>
+                <div className="rounded-2xl border border-line bg-panel px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Application ID
-                  </p>
-                  <p className="mt-2 break-all text-sm text-slate-800">{detail.application.id}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Candidate ID
-                  </p>
-                  <p className="mt-2 break-all text-sm text-slate-800">{detail.candidate.id}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Submitted at
+                    Threshold check
                   </p>
                   <p className="mt-2 text-sm text-slate-800">
-                    {formatDateTime(detail.application.submitted_at)}
+                    {formatShortlistDecision(
+                      detail.candidate.ai_score,
+                      detail.candidate.shortlist_threshold
+                    )}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                    Resume file path
-                  </p>
-                  <p className="mt-2 break-all text-sm text-slate-800">
-                    {detail.application.resume_file_path}
+                <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Model</p>
+                  <p className="mt-2 text-sm text-slate-800">
+                    {detail.screeningResult?.model_name ?? "Not run yet"}
                   </p>
                 </div>
               </div>
-            </section>
-          </div>
 
-          <div className="space-y-8">
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">AI screening</h2>
-              <div className="mt-4 rounded-3xl border border-line bg-white p-5">
-                <div className="space-y-4 text-sm text-slate-700">
-                  <div>
+              {detail.screeningResult ? (
+                <div className="mt-6 space-y-6 border-t border-line pt-6">
+                  <div className="rounded-2xl border border-line bg-panel px-5 py-4">
                     <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      AI score
+                      Screening rationale
                     </p>
-                    <p className="mt-2">{formatAiScore(detail.candidate.ai_score)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Model
-                    </p>
-                    <p className="mt-2">{detail.screeningResult?.model_name ?? "Not run yet"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Years of experience
-                    </p>
-                    <p className="mt-2">
-                      {detail.screeningResult?.years_experience ?? "Not extracted"}
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {detail.screeningResult.rationale}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Shortlist recommendation
-                    </p>
-                    <p className="mt-2">
-                      {detail.screeningResult === null
-                        ? "Pending screening"
-                        : detail.screeningResult.shortlist_recommendation
-                          ? "Recommend shortlist"
-                          : "Do not recommend shortlist"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Shortlist threshold
-                    </p>
-                    <p className="mt-2">{detail.candidate.shortlist_threshold}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Admin override
-                    </p>
-                    <p className="mt-2">
-                      {detail.candidate.admin_override ? "Enabled" : "Not enabled"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Shortlist decision
-                    </p>
-                    <p className="mt-2">
-                      {detail.candidate.ai_score === null
-                        ? "Pending screening"
-                        : detail.candidate.ai_score >= detail.candidate.shortlist_threshold
-                          ? "Meets threshold"
-                          : "Below threshold"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Override note
-                    </p>
-                    <p className="mt-2">
-                      {detail.candidate.admin_override_note ?? "No note recorded"}
-                    </p>
-                  </div>
-                </div>
 
-                {detail.screeningResult ? (
-                  <div className="mt-6 space-y-6 border-t border-line pt-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                        Rationale
-                      </p>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
-                        {detail.screeningResult.rationale}
-                      </p>
-                    </div>
-
-                    <div>
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
                       <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
                         Strengths
                       </p>
-                      <ul className="mt-2 space-y-2">
+                      <ul className="mt-3 space-y-2">
                         {detail.screeningResult.strengths.map((item) => (
                           <li key={item} className="text-sm text-slate-700">
                             {item}
@@ -322,9 +294,9 @@ export default async function CandidateDetailPage({
                       </ul>
                     </div>
 
-                    <div>
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
                       <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Gaps</p>
-                      <ul className="mt-2 space-y-2">
+                      <ul className="mt-3 space-y-2">
                         {detail.screeningResult.gaps.map((item) => (
                           <li key={item} className="text-sm text-slate-700">
                             {item}
@@ -332,132 +304,244 @@ export default async function CandidateDetailPage({
                         ))}
                       </ul>
                     </div>
+                  </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div>
+                  <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                    <div className="space-y-6">
+                      <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Screening metadata
+                        </p>
+                        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                              Years of experience
+                            </p>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {detail.screeningResult.years_experience ?? "Not extracted"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                              Shortlist threshold
+                            </p>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {detail.candidate.shortlist_threshold}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                              Admin override
+                            </p>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {detail.candidate.admin_override ? "Enabled" : "Not enabled"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                              Override note
+                            </p>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {detail.candidate.admin_override_note ?? "No note recorded"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-line bg-panel px-5 py-4">
                         <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
                           Extracted skills
                         </p>
-                        <p className="mt-2 text-sm text-slate-700">
+                        <p className="mt-3 text-sm text-slate-700">
                           {detail.screeningResult.extracted_skills.join(", ") || "None extracted"}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                          Education
-                        </p>
-                        <p className="mt-2 text-sm text-slate-700">
-                          {detail.screeningResult.education.join(", ") || "None extracted"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                          Past employers
-                        </p>
-                        <p className="mt-2 text-sm text-slate-700">
-                          {detail.screeningResult.past_employers.join(", ") || "None extracted"}
-                        </p>
-                      </div>
-                      <div>
+
+                      <div className="rounded-2xl border border-line bg-panel px-5 py-4">
                         <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
                           Key achievements
                         </p>
-                        <p className="mt-2 text-sm text-slate-700">
-                          {detail.screeningResult.key_achievements.join(", ") || "None extracted"}
+                        <ul className="mt-3 space-y-2">
+                          {detail.screeningResult.key_achievements.length > 0 ? (
+                            detail.screeningResult.key_achievements.map((item) => (
+                              <li key={item} className="text-sm text-slate-700">
+                                {item}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-slate-500">No achievements extracted</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Education
                         </p>
+                        {detail.screeningResult.education.length > 0 ? (
+                          <ul className="mt-3 space-y-3">
+                            {detail.screeningResult.education.map(renderEducationItem)}
+                          </ul>
+                        ) : (
+                          <p className="mt-3 text-sm text-slate-500">No education extracted</p>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Past employers
+                        </p>
+                        {detail.screeningResult.past_employers.length > 0 ? (
+                          <ul className="mt-3 space-y-3">
+                            {detail.screeningResult.past_employers.map(renderEmployerItem)}
+                          </ul>
+                        ) : (
+                          <p className="mt-3 text-sm text-slate-500">No employers extracted</p>
+                        )}
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <p className="mt-6 border-t border-line pt-6 text-sm text-slate-500">
-                    Run AI screening to generate extracted resume details, fit score,
-                    strengths, and gaps for this candidate.
-                  </p>
-                )}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">Admin override</h2>
-              <div className="mt-4 rounded-3xl border border-line bg-white p-5">
-                <p className="text-sm text-slate-600">
-                  Use this when a human reviewer wants to override the shortlist
-                  outcome recommended by the AI screening result.
+                </div>
+              ) : (
+                <p className="mt-6 border-t border-line pt-6 text-sm text-slate-500">
+                  Run AI screening to generate structured resume evidence, a fit score,
+                  recruiter-friendly rationale, strengths, and gaps for this candidate.
                 </p>
-                <form
-                  action={overrideCandidateShortlistAction.bind(null, detail.candidate.id)}
-                  className="mt-5 space-y-4"
-                >
+              )}
+            </div>
+          </section>
+
+          <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-8">
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900">Profile links</h2>
+                <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-3">
+                  <OptionalLink label="LinkedIn" href={detail.candidate.linkedin_url} />
+                  <OptionalLink label="Portfolio" href={detail.candidate.portfolio_url} />
+                  <OptionalLink label="GitHub" href={detail.candidate.github_url} />
+                </div>
+              </section>
+
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900">Application record</h2>
+                <div className="mt-4 grid gap-4 rounded-3xl border border-line bg-white p-5 md:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="decision"
-                      className="mb-2 block text-sm font-medium text-slate-800"
-                    >
-                      Override decision
-                    </label>
-                    <select
-                      id="decision"
-                      name="decision"
-                      defaultValue="shortlist"
-                      className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
-                    >
-                      <option value="shortlist">Shortlist candidate</option>
-                      <option value="do_not_shortlist">Do not shortlist</option>
-                    </select>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Application ID
+                    </p>
+                    <p className="mt-2 break-all text-sm text-slate-800">{detail.application.id}</p>
                   </div>
-
                   <div>
-                    <label
-                      htmlFor="note"
-                      className="mb-2 block text-sm font-medium text-slate-800"
-                    >
-                      Override note
-                    </label>
-                    <textarea
-                      id="note"
-                      name="note"
-                      rows={4}
-                      defaultValue={detail.candidate.admin_override_note ?? ""}
-                      className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
-                    />
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Candidate ID
+                    </p>
+                    <p className="mt-2 break-all text-sm text-slate-800">{detail.candidate.id}</p>
                   </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Submitted at
+                    </p>
+                    <p className="mt-2 text-sm text-slate-800">
+                      {formatDateTime(detail.application.submitted_at)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Resume file path
+                    </p>
+                    <p className="mt-2 break-all text-sm text-slate-800">
+                      {detail.application.resume_file_path}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </div>
 
-                  <button
-                    type="submit"
-                    className="inline-flex rounded-full bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accentDark"
-                  >
-                    Save override
-                  </button>
-                </form>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Candidate activity
-              </h2>
-              <div className="mt-4 rounded-3xl border border-line bg-white p-5">
-                {detail.auditLogs.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No workflow activity recorded yet.
+            <div className="space-y-8">
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900">Admin override</h2>
+                <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+                  <p className="text-sm text-slate-600">
+                    Use this when a human reviewer wants to override the shortlist
+                    outcome recommended by the AI screening result.
                   </p>
-                ) : (
-                  <ol className="space-y-4">
-                    {detail.auditLogs.map((log) => (
-                      <li key={log.id} className="border-l-2 border-line pl-4">
-                        <p className="text-sm font-medium text-slate-900">{log.action_type}</p>
-                        <p className="mt-1 text-sm text-slate-600">
-                          {log.action_detail ?? "No detail recorded"}
-                        </p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-slate-500">
-                          {log.actor} · {formatDateTime(log.created_at)}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-            </section>
+                  <form
+                    action={overrideCandidateShortlistAction.bind(null, detail.candidate.id)}
+                    className="mt-5 space-y-4"
+                  >
+                    <div>
+                      <label
+                        htmlFor="decision"
+                        className="mb-2 block text-sm font-medium text-slate-800"
+                      >
+                        Override decision
+                      </label>
+                      <select
+                        id="decision"
+                        name="decision"
+                        defaultValue="shortlist"
+                        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                      >
+                        <option value="shortlist">Shortlist candidate</option>
+                        <option value="do_not_shortlist">Do not shortlist</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="note"
+                        className="mb-2 block text-sm font-medium text-slate-800"
+                      >
+                        Override note
+                      </label>
+                      <textarea
+                        id="note"
+                        name="note"
+                        rows={4}
+                        defaultValue={detail.candidate.admin_override_note ?? ""}
+                        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex rounded-full bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accentDark"
+                    >
+                      Save override
+                    </button>
+                  </form>
+                </div>
+              </section>
+
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Candidate activity
+                </h2>
+                <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+                  {detail.auditLogs.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      No workflow activity recorded yet.
+                    </p>
+                  ) : (
+                    <ol className="space-y-4">
+                      {detail.auditLogs.map((log) => (
+                        <li key={log.id} className="border-l-2 border-line pl-4">
+                          <p className="text-sm font-medium text-slate-900">{log.action_type}</p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {log.action_detail ?? "No detail recorded"}
+                          </p>
+                          <p className="mt-2 text-xs uppercase tracking-[0.12em] text-slate-500">
+                            {log.actor} · {formatDateTime(log.created_at)}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </div>

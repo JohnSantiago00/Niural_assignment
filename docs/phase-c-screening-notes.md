@@ -81,3 +81,63 @@ That later phase will be cleaner because Phase C1 already establishes:
 - score/status transitions
 - admin override behavior
 - a dedicated place in the admin UI to render AI outputs
+
+## Phase C1 quality pass
+
+### Why education and employer data is now more structured
+
+The first screening version stored `education` and `past_employers` as flat
+arrays of strings. That was enough to prove the extraction loop worked, but it
+was too lossy for an internal review UI.
+
+The schema now stores:
+
+- `education` as objects with `institution`, `degree`, `field`, and `year`
+- `past_employers` as objects with `company`, `title`, and `duration`
+
+This keeps the output grounded while making it much easier to render readable
+resume evidence in the admin detail page and extend later phases without
+reparsing unstructured strings.
+
+### How score quality was improved
+
+The screening prompt now gives clearer scoring guidance so the model behaves
+more like a practical recruiter screen:
+
+- core requirements carry more weight than nice-to-have responsibilities
+- missing evidence lowers confidence moderately instead of collapsing the score
+- weak evidence does not justify inflated scores
+- score bands are described in plain English so the model has a more defensible
+  sense of what 85 vs 70 vs 50 should mean
+
+This is still an MVP prompt, not a rubric engine, but it makes the scores and
+rationales easier to explain and trust.
+
+### Strengths and gaps requirement
+
+Strengths and gaps remain required with at least one item each.
+
+That was a deliberate choice. For internal hiring review, a result without both
+positive evidence and risk areas is usually less useful than a score alone. The
+requirement nudges the model to produce a balanced screening artifact instead of
+an overly positive or overly vague summary.
+
+### Detail page improvement before enrichment
+
+The candidate detail page was widened and reorganized so the AI screening output
+no longer lives in a cramped side column.
+
+The page now separates:
+
+- candidate summary
+- AI screening overview
+- rationale
+- strengths and gaps
+- structured resume extraction
+- application metadata
+- override controls
+- workflow activity
+
+That makes Phase C1 easier to scan now and gives the next enrichment phase a
+clear place to add more AI-assisted review sections without redesigning the
+page.

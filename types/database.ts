@@ -1,4 +1,15 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+export type EducationEntry = {
+  institution: string;
+  degree: string | null;
+  field: string | null;
+  year: number | null;
+};
+export type PastEmployerEntry = {
+  company: string;
+  title: string | null;
+  duration: string | null;
+};
 
 export type RoleRecord = {
   id: string;
@@ -65,8 +76,8 @@ export type ScreeningResultRecord = {
   parsed_resume_text: string;
   extracted_skills: string[];
   years_experience: number | null;
-  education: string[];
-  past_employers: string[];
+  education: EducationEntry[];
+  past_employers: PastEmployerEntry[];
   key_achievements: string[];
   strengths: string[];
   gaps: string[];
@@ -168,8 +179,8 @@ export type Database = {
           parsed_resume_text: string;
           extracted_skills?: string[];
           years_experience?: number | null;
-          education?: string[];
-          past_employers?: string[];
+          education?: EducationEntry[];
+          past_employers?: PastEmployerEntry[];
           key_achievements?: string[];
           strengths?: string[];
           gaps?: string[];
