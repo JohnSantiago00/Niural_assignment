@@ -59,6 +59,25 @@ export type AdminUserRecord = {
   created_at: string;
 };
 
+export type ScreeningResultRecord = {
+  id: string;
+  candidate_id: string;
+  parsed_resume_text: string;
+  extracted_skills: string[];
+  years_experience: number | null;
+  education: string[];
+  past_employers: string[];
+  key_achievements: string[];
+  strengths: string[];
+  gaps: string[];
+  fit_score: number;
+  rationale: string;
+  shortlist_recommendation: boolean;
+  model_name: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -139,6 +158,29 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<AdminUserRecord>;
+        Relationships: [];
+      };
+      screening_results: {
+        Row: ScreeningResultRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          parsed_resume_text: string;
+          extracted_skills?: string[];
+          years_experience?: number | null;
+          education?: string[];
+          past_employers?: string[];
+          key_achievements?: string[];
+          strengths?: string[];
+          gaps?: string[];
+          fit_score: number;
+          rationale: string;
+          shortlist_recommendation: boolean;
+          model_name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<ScreeningResultRecord>;
         Relationships: [];
       };
     };

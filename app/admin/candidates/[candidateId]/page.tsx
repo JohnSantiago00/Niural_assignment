@@ -10,6 +10,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { getCandidateDetail } from "@/lib/admin/queries";
 import { requireAdminUser } from "@/lib/auth/authorization";
 import {
+  overrideCandidateShortlistAction,
+  runCandidateScreeningAction
+} from "@/lib/screening/actions";
+import {
   getCandidateStatusLabel,
   type CandidateWorkflowStatus
 } from "@/lib/utils/candidate-status";
@@ -17,6 +21,12 @@ import {
 type CandidateDetailPageProps = {
   params: Promise<{
     candidateId: string;
+  }>;
+  searchParams: Promise<{
+    screening?: string;
+    screeningError?: string;
+    override?: string;
+    overrideError?: string;
   }>;
 };
 
@@ -65,10 +75,12 @@ function OptionalLink({
 export const revalidate = 0;
 
 export default async function CandidateDetailPage({
-  params
+  params,
+  searchParams
 }: CandidateDetailPageProps) {
   await requireAdminUser();
   const { candidateId } = await params;
+  const resolvedSearchParams = await searchParams;
   const detail = await getCandidateDetail(candidateId);
 
   if (!detail) {
@@ -84,6 +96,30 @@ export default async function CandidateDetailPage({
       </Link>
 
       <div className="mt-6 rounded-[2rem] border border-line bg-panel p-8 shadow-card">
+        {resolvedSearchParams.screening === "completed" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            AI screening completed successfully.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.screeningError ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {resolvedSearchParams.screeningError}
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.override === "saved" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Admin override saved successfully.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.overrideError ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {resolvedSearchParams.overrideError}
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-6 border-b border-line pb-8 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.18em] text-accent">
@@ -102,6 +138,14 @@ export default async function CandidateDetailPage({
           <div className="flex flex-col items-start gap-3 md:items-end">
             <StatusBadge status={status} />
             <p className="text-sm text-slate-500">{getCandidateStatusLabel(status)}</p>
+            <form action={runCandidateScreeningAction.bind(null, detail.candidate.id)}>
+              <button
+                type="submit"
+                className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900"
+              >
+                {detail.screeningResult ? "Run AI screening again" : "Run AI screening"}
+              </button>
+            </form>
           </div>
         </div>
 
@@ -183,7 +227,7 @@ export default async function CandidateDetailPage({
 
           <div className="space-y-8">
             <section>
-              <h2 className="text-lg font-semibold text-slate-900">Screening readiness</h2>
+              <h2 className="text-lg font-semibold text-slate-900">AI screening</h2>
               <div className="mt-4 rounded-3xl border border-line bg-white p-5">
                 <div className="space-y-4 text-sm text-slate-700">
                   <div>
@@ -194,24 +238,28 @@ export default async function CandidateDetailPage({
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Screening summary
+                      Model
                     </p>
-                    <p className="mt-2 text-slate-500">
-                      Reserved for Phase C AI screening output.
+                    <p className="mt-2">{detail.screeningResult?.model_name ?? "Not run yet"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Years of experience
+                    </p>
+                    <p className="mt-2">
+                      {detail.screeningResult?.years_experience ?? "Not extracted"}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-                      Strengths
+                      Shortlist recommendation
                     </p>
-                    <p className="mt-2 text-slate-500">
-                      Reserved for structured strengths once screening is added.
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Gaps</p>
-                    <p className="mt-2 text-slate-500">
-                      Reserved for structured gaps once screening is added.
+                    <p className="mt-2">
+                      {detail.screeningResult === null
+                        ? "Pending screening"
+                        : detail.screeningResult.shortlist_recommendation
+                          ? "Recommend shortlist"
+                          : "Do not recommend shortlist"}
                     </p>
                   </div>
                   <div>
@@ -232,7 +280,7 @@ export default async function CandidateDetailPage({
                     <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
                       Shortlist decision
                     </p>
-                    <p className="mt-2 text-slate-500">
+                    <p className="mt-2">
                       {detail.candidate.ai_score === null
                         ? "Pending screening"
                         : detail.candidate.ai_score >= detail.candidate.shortlist_threshold
@@ -249,6 +297,138 @@ export default async function CandidateDetailPage({
                     </p>
                   </div>
                 </div>
+
+                {detail.screeningResult ? (
+                  <div className="mt-6 space-y-6 border-t border-line pt-6">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Rationale
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                        {detail.screeningResult.rationale}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Strengths
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {detail.screeningResult.strengths.map((item) => (
+                          <li key={item} className="text-sm text-slate-700">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Gaps</p>
+                      <ul className="mt-2 space-y-2">
+                        {detail.screeningResult.gaps.map((item) => (
+                          <li key={item} className="text-sm text-slate-700">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Extracted skills
+                        </p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {detail.screeningResult.extracted_skills.join(", ") || "None extracted"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Education
+                        </p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {detail.screeningResult.education.join(", ") || "None extracted"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Past employers
+                        </p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {detail.screeningResult.past_employers.join(", ") || "None extracted"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Key achievements
+                        </p>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {detail.screeningResult.key_achievements.join(", ") || "None extracted"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-6 border-t border-line pt-6 text-sm text-slate-500">
+                    Run AI screening to generate extracted resume details, fit score,
+                    strengths, and gaps for this candidate.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-slate-900">Admin override</h2>
+              <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+                <p className="text-sm text-slate-600">
+                  Use this when a human reviewer wants to override the shortlist
+                  outcome recommended by the AI screening result.
+                </p>
+                <form
+                  action={overrideCandidateShortlistAction.bind(null, detail.candidate.id)}
+                  className="mt-5 space-y-4"
+                >
+                  <div>
+                    <label
+                      htmlFor="decision"
+                      className="mb-2 block text-sm font-medium text-slate-800"
+                    >
+                      Override decision
+                    </label>
+                    <select
+                      id="decision"
+                      name="decision"
+                      defaultValue="shortlist"
+                      className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                    >
+                      <option value="shortlist">Shortlist candidate</option>
+                      <option value="do_not_shortlist">Do not shortlist</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="note"
+                      className="mb-2 block text-sm font-medium text-slate-800"
+                    >
+                      Override note
+                    </label>
+                    <textarea
+                      id="note"
+                      name="note"
+                      rows={4}
+                      defaultValue={detail.candidate.admin_override_note ?? ""}
+                      className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="inline-flex rounded-full bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accentDark"
+                  >
+                    Save override
+                  </button>
+                </form>
               </div>
             </section>
 
