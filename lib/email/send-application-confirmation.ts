@@ -1,3 +1,8 @@
+/**
+ * Thin email integration for Phase A. Confirmation delivery is intentionally
+ * best-effort: the application should stay saved even if Resend is unavailable
+ * or the provider call fails.
+ */
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
 import { Resend } from "resend";
 
@@ -7,6 +12,10 @@ type SendConfirmationEmailParams = {
   email: string;
 };
 
+/**
+ * Sends the confirmation email when Resend is configured, or returns a
+ * structured "skipped" result when email is disabled in local/dev environments.
+ */
 export async function sendApplicationConfirmationEmail({
   candidateName,
   roleTitle,

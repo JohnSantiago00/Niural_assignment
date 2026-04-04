@@ -1,3 +1,8 @@
+/**
+ * Public application page. It resolves the optional `roleId` query param on the
+ * server so the form can either lock in a chosen role or fall back to the
+ * general "pick a role" experience.
+ */
 import { ApplicationForm } from "@/components/application-form";
 import { getOpenRoles } from "@/lib/supabase/queries";
 
@@ -9,6 +14,10 @@ type ApplyPageProps = {
 
 export const revalidate = 0;
 
+/**
+ * Next.js 16 provides `searchParams` asynchronously in App Router page props,
+ * so we resolve them before deciding whether the role should be preselected.
+ */
 export default async function ApplyPage({ searchParams }: ApplyPageProps) {
   const resolvedSearchParams = await searchParams;
   const roles = await getOpenRoles();

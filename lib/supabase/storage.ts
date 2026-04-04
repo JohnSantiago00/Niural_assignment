@@ -1,8 +1,16 @@
+/**
+ * Supabase Storage helpers for the private resume bucket. Phase A keeps resume
+ * uploads server-side so the browser never needs privileged storage access.
+ */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getRequiredEnv } from "@/lib/utils/env";
 import { sanitizeFileName } from "@/lib/utils/resume";
 import type { ApplicationSubmissionValues } from "@/types/application";
 
+/**
+ * Uploads a validated resume into the configured private storage bucket and
+ * returns the stored path that gets saved on the application record.
+ */
 export async function uploadResumeFile(values: ApplicationSubmissionValues) {
   const supabase = createSupabaseAdminClient();
   const bucket = getRequiredEnv("SUPABASE_RESUME_BUCKET");
@@ -23,8 +31,15 @@ export async function uploadResumeFile(values: ApplicationSubmissionValues) {
   return path;
 }
 
+/**
+ * Best-effort cleanup used when a later submission step fails after upload.
+ */
 export async function deleteResumeFile(path: string) {
   const supabase = createSupabaseAdminClient();
   const bucket = getRequiredEnv("SUPABASE_RESUME_BUCKET");
-  await supabase.storage.from(bucket).remove([path]);
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+
+  if (error) {
+    throw new Error(`Failed to delete resume: ${error.message}`);
+  }
 }

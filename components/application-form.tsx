@@ -1,7 +1,12 @@
 "use client";
 
+/**
+ * Renders the public Phase A application form. This component owns the browser
+ * UX only: local form state, client-side validation, and the POST request to
+ * the application API. All durable business logic still lives on the server.
+ */
 import type { FormEvent, HTMLInputTypeAttribute } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MAX_RESUME_SIZE_BYTES } from "@/lib/utils/resume";
 import { clientApplicationSchema, formatZodErrors } from "@/lib/utils/validation";
 import { cn } from "@/lib/utils/cn";
@@ -41,6 +46,7 @@ export function ApplicationForm({
 }: ApplicationFormProps) {
   const hasRoles = roles.length > 0;
   const isRoleLocked = Boolean(lockedRole);
+  const resumeInputRef = useRef<HTMLInputElement | null>(null);
   const [formState, setFormState] = useState<FormState>(defaultState(initialRoleId));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -65,6 +71,11 @@ export function ApplicationForm({
     });
   };
 
+  /**
+   * Validates the local form state, then sends one multipart request to the
+   * backend. The API route takes over after this and performs all Phase A
+   * database/storage/email work.
+   */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
@@ -112,6 +123,9 @@ export function ApplicationForm({
           : "Application submitted successfully. We saved your application, but the confirmation email could not be sent."
       );
       setFormState(defaultState(initialRoleId));
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = "";
+      }
     } catch {
       setSubmitError("Something went wrong while submitting the form. Please try again.");
     } finally {
@@ -239,6 +253,7 @@ export function ApplicationForm({
           Resume
         </label>
         <input
+          ref={resumeInputRef}
           id="resume"
           name="resume"
           type="file"
@@ -291,6 +306,9 @@ type FieldProps = {
   type?: HTMLInputTypeAttribute;
 };
 
+/**
+ * Small shared input renderer for the plain text fields in the form.
+ */
 function Field({
   label,
   name,
@@ -321,6 +339,9 @@ function Field({
   );
 }
 
+/**
+ * Keeps the input styling logic in one place so field components stay readable.
+ */
 function inputClassName(hasError: boolean) {
   return cn(
     "w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400",
