@@ -4,7 +4,7 @@
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { downloadResumeFile } from "@/lib/supabase/storage";
-import { screenCandidateWithAi } from "@/lib/openai/screen-candidate";
+import { screenCandidateWithAi } from "@/lib/gemini/screen-candidate";
 import { extractResumeText } from "@/lib/screening/extract-resume-text";
 import type { ScreeningOutput } from "@/lib/screening/schema";
 import type { RoleRecord } from "@/types/database";
@@ -172,4 +172,3 @@ export async function runCandidateScreening(
     candidateStatus: nextStatus ?? context.currentStatus
   };
 }
-

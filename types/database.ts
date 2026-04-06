@@ -10,6 +10,40 @@ export type PastEmployerEntry = {
   title: string | null;
   duration: string | null;
 };
+export type ResearchProfileRecord = {
+  id: string;
+  candidate_id: string;
+  linkedin_url_used: string | null;
+  linkedin_source_status:
+    | "missing"
+    | "fetched_direct"
+    | "blocked"
+    | "unavailable";
+  linkedin_source_note: string | null;
+  github_url_used: string | null;
+  portfolio_url_used: string | null;
+  x_url_used: string | null;
+  linkedin_summary: string | null;
+  github_summary: string | null;
+  portfolio_summary: string | null;
+  x_summary: string | null;
+  discrepancy_flags: {
+    type:
+      | "experience_mismatch"
+      | "role_scope_mismatch"
+      | "missing_supporting_evidence"
+      | "timeline_inconsistency"
+      | "project_claim_unverified";
+    severity: "low" | "medium" | "high";
+    description: string;
+    source: string | null;
+  }[];
+  confidence_score: number;
+  candidate_brief: string;
+  model_name: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export type RoleRecord = {
   id: string;
@@ -192,6 +226,31 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<ScreeningResultRecord>;
+        Relationships: [];
+      };
+      research_profiles: {
+        Row: ResearchProfileRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          linkedin_url_used?: string | null;
+          linkedin_source_status?: ResearchProfileRecord["linkedin_source_status"];
+          linkedin_source_note?: string | null;
+          github_url_used?: string | null;
+          portfolio_url_used?: string | null;
+          x_url_used?: string | null;
+          linkedin_summary?: string | null;
+          github_summary?: string | null;
+          portfolio_summary?: string | null;
+          x_summary?: string | null;
+          discrepancy_flags?: ResearchProfileRecord["discrepancy_flags"];
+          confidence_score: number;
+          candidate_brief: string;
+          model_name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<ResearchProfileRecord>;
         Relationships: [];
       };
     };

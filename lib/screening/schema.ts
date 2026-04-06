@@ -27,6 +27,35 @@ export const pastEmployerEntrySchema = z.object({
   duration: optionalText
 });
 
+// Gemini gets a simplified schema with fewer constraints so structured output
+// remains serveable, while the richer schema below still validates before DB
+// writes. This keeps the model contract practical without weakening app safety.
+export const screeningModelOutputSchema = z.object({
+  extracted_skills: z.array(z.string()),
+  years_experience: z.number().nullable(),
+  education: z.array(
+    z.object({
+      institution: z.string(),
+      degree: z.string().nullable(),
+      field: z.string().nullable(),
+      year: z.number().nullable()
+    })
+  ),
+  past_employers: z.array(
+    z.object({
+      company: z.string(),
+      title: z.string().nullable(),
+      duration: z.string().nullable()
+    })
+  ),
+  key_achievements: z.array(z.string()),
+  strengths: z.array(z.string()),
+  gaps: z.array(z.string()),
+  fit_score: z.number(),
+  rationale: z.string(),
+  shortlist_recommendation: z.boolean()
+});
+
 export const screeningOutputSchema = z.object({
   extracted_skills: z.array(z.string().trim()).max(30),
   years_experience: z.number().min(0).max(60).nullable(),
@@ -44,6 +73,7 @@ export const screeningOutputSchema = z.object({
 });
 
 export type ScreeningOutput = z.infer<typeof screeningOutputSchema>;
+export type ScreeningModelOutput = z.infer<typeof screeningModelOutputSchema>;
 export type EducationEntry = z.infer<typeof educationEntrySchema>;
 export type PastEmployerEntry = z.infer<typeof pastEmployerEntrySchema>;
 

@@ -1,49 +1,106 @@
-# Niural Assignment
+# Niural Hiring Workflow Prototype
 
-Phase A implements a simple, interview-friendly candidate onboarding foundation with:
+An end-to-end internal hiring workflow prototype built for an AI Product Operator take-home assignment.
 
-- Next.js App Router + TypeScript + Tailwind CSS
-- Supabase Postgres + Storage
-- Resend confirmation emails
-- A deterministic `POST /api/applications` workflow for resume upload, record creation, and confirmation handling
+The app currently covers:
 
-## Phase A features
+- Phase 01: public careers and application intake
+- Phase 02A: protected admin dashboard and candidate lifecycle review
+- Phase 02B: AI resume screening against the applied role
+- Phase 02C: shortlist-only candidate research and profile enrichment
 
-- Public careers page backed by live `roles` data from Supabase
-- Role detail page with responsibilities, requirements, and direct apply flow
-- Application form with client and server validation
-- Resume upload to a private Supabase Storage bucket
-- Creation of `applications`, `candidates`, and `audit_logs` records
-- Confirmation email via Resend, without rolling back saved data if email delivery fails
+The product is intentionally designed to be:
 
-## Project structure
+- practical
+- deterministic where workflow state matters
+- easy to demo
+- easy to explain in an interview
 
-```text
-app/
-  (public)/
-    careers/
-    careers/[roleId]/
-    apply/
-  admin/
-  api/applications/
-components/
-lib/
-  applications/
-  email/
-  supabase/
-  utils/
-supabase/migrations/
-docs/
-types/
-```
+## Current Status
 
-## Environment variables
+Implemented today:
+
+- public careers page and role detail pages
+- application form with resume upload to private Supabase Storage
+- applications, candidates, and audit logs
+- protected admin dashboard with filters and candidate detail page
+- manual AI screening with persisted `screening_results`
+- manual profile enrichment for shortlisted candidates with persisted `research_profiles`
+- admin override support for shortlist decisions
+- Supabase Auth login plus `admin_users` allowlist
+
+Not implemented yet:
+
+- scheduling
+- transcripts / interview notes
+- offers / e-signature
+- Slack onboarding
+- heavy scraping or official third-party social integrations
+
+## Tech Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Supabase Postgres + Storage + Auth
+- Google Gemini Developer API via `@google/genai`
+- Zod for validation
+- Resend for confirmation email
+
+## Why This Stack
+
+- Next.js App Router keeps UI, server actions, and API routes in one interview-friendly codebase.
+- Supabase gives a simple hosted Postgres + storage + auth foundation without adding Prisma or extra infrastructure.
+- Gemini is used for structured screening and enrichment output, while app logic still owns workflow state.
+- Zod keeps AI output validation and user input validation explicit before any database writes happen.
+
+## AI Usage
+
+AI is used in two separate layers:
+
+1. Screening
+   - resume text + role JD in
+   - structured fit score, rationale, strengths, gaps, and resume extraction out
+
+2. Enrichment
+   - shortlisted candidates only
+   - submitted profile links + screening context in
+   - source summaries, conservative discrepancy flags, confidence score, and candidate brief out
+
+AI is not used to:
+
+- decide who can access admin routes
+- decide eligibility for enrichment
+- directly mutate workflow state
+- browse arbitrary external data without app-provided source content
+
+## Real vs Mocked
+
+Real:
+
+- Supabase database and storage
+- Supabase Auth login for admin access
+- resume upload and persistence
+- screening and enrichment model calls
+- server-side source fetching for submitted profile URLs
+
+MVP / intentionally limited:
+
+- LinkedIn / GitHub / portfolio retrieval is lightweight HTML fetching, not official integrations
+- LinkedIn may block direct automated access; when that happens, the app records the limitation clearly and preserves the submitted URL for manual review
+- X/Twitter is modeled as optional future work
+- enrichment is manual, not queued
+- PDF parsing uses a pragmatic Node-friendly parser and may be imperfect on layout-heavy files
+
+## Environment Variables
 
 Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_RESUME_BUCKET=candidate-resumes
 RESEND_API_KEY=
@@ -52,54 +109,82 @@ RESEND_FROM_EMAIL=Hiring Team <hiring@example.com>
 
 Notes:
 
-- `SUPABASE_SERVICE_ROLE_KEY` is used only on the server for DB writes and private storage uploads.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` is used for public read-only Supabase access in the app.
-- `SUPABASE_RESUME_BUCKET` defaults to `candidate-resumes`, which matches the migration.
-- If Resend env vars are missing, applications still save successfully and the API reports that email was skipped.
-- The included `.env.local` is prefilled with the Supabase URL and publishable key you shared, but you still need to add `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY` for full submission testing.
+- `GEMINI_API_KEY` is used only on the server for screening and enrichment.
+- `GEMINI_MODEL` keeps the MVP on one model unless you deliberately change it.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only and powers protected writes plus private storage access.
+- Resend is optional for the candidate confirmation email path.
 
-## Local setup
+## Local Setup
 
-1. Install dependencies:
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-2. Apply the Supabase SQL in order:
+2. Apply the Supabase migrations in order
 
 - [0001_phase_a_schema.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0001_phase_a_schema.sql)
 - [0002_seed_roles.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0002_seed_roles.sql)
+- [0003_admin_users.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0003_admin_users.sql)
+- [0004_screening_results.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0004_screening_results.sql)
+- [0005_screening_results_structured_fields.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0005_screening_results_structured_fields.sql)
+- [0006_research_profiles.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0006_research_profiles.sql)
+- [0007_research_profiles_quality.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0007_research_profiles_quality.sql)
 
-You can run them in the Supabase SQL editor or through the Supabase CLI if you already have it configured.
+3. Create at least one Supabase Auth user and add that email to `public.admin_users`
 
-3. Start the app:
+4. Start the app
 
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000/careers](http://localhost:3000/careers)
+5. Open [http://localhost:3000/careers](http://localhost:3000/careers)
 
-## Submission flow
+## Current Flow
 
-`POST /api/applications` performs the Phase A workflow in this order:
+Candidate side:
 
-1. Validate payload and resume file.
-2. Confirm the role exists and is still open.
-3. Prevent duplicate applications for the same `(role_id, email)`.
-4. Upload the resume to Supabase Storage.
-5. Insert the application row.
-6. Insert the candidate row.
-7. Insert an audit log entry.
-8. Send the confirmation email.
+1. browse careers
+2. open a role
+3. apply with resume upload
+4. application, candidate, and audit records are created
+5. optional confirmation email is attempted
 
-If email sending fails, the saved application stays intact. If a DB write fails after upload, the endpoint deletes the uploaded file and rolls back the inserted application row.
+Admin side:
 
-## Useful files
+1. sign in through Supabase Auth
+2. review candidates in `/admin`
+3. open candidate detail page
+4. run AI screening
+5. shortlist or override if needed
+6. run profile enrichment only for shortlisted candidates
+7. review brief, discrepancy flags, and source summaries
 
-- [Application route](/Users/nick/Desktop/Niural_assignment/app/api/applications/route.ts)
-- [Submission workflow](/Users/nick/Desktop/Niural_assignment/lib/applications/submit-application.ts)
-- [Validation helpers](/Users/nick/Desktop/Niural_assignment/lib/utils/validation.ts)
-- [Supabase schema](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0001_phase_a_schema.sql)
-- [Phase A notes](/Users/nick/Desktop/Niural_assignment/docs/phase-a-notes.md)
+## Key Tradeoffs / Assumptions
+
+- Manual triggers are used for screening and enrichment so the workflow is easy to demo and reason about.
+- Workflow state stays deterministic in app logic even when Gemini is generating structured output.
+- Enrichment is intentionally lightweight and conservative. Missing or blocked sources are treated as limitations, not evidence.
+- The system stores screening and enrichment separately so those layers can evolve independently.
+- The admin tool is protected, but this is still a prototype and not a production-grade enterprise auth system.
+
+## Useful Docs
+
+- [Architecture Overview](/Users/nick/Desktop/Niural_assignment/docs/architecture-overview.md)
+- [AI Usage](/Users/nick/Desktop/Niural_assignment/docs/ai-usage.md)
+- [Edge Cases](/Users/nick/Desktop/Niural_assignment/docs/edge-cases.md)
+- [Phase B Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-b-notes.md)
+- [Phase C Screening Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-screening-notes.md)
+- [Phase C Enrichment Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-enrichment-notes.md)
+
+## Next Steps
+
+The next major phase would add later-stage hiring workflow features such as:
+
+- scheduling
+- interview support
+- transcripts / notes
+- offers / signing
+- onboarding handoff

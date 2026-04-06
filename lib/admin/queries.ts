@@ -18,6 +18,7 @@ import type {
 import type {
   ApplicationRecord,
   CandidateRecord,
+  ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
 } from "@/types/database";
@@ -166,7 +167,8 @@ export async function getCandidateDetail(
     { data: application, error: applicationError },
     { data: role, error: roleError },
     { data: auditLogs, error: auditError },
-    { data: screeningResult, error: screeningError }
+    screeningResultResult,
+    researchProfileResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -183,7 +185,12 @@ export async function getCandidateDetail(
       .from("screening_results")
       .select("*")
       .eq("candidate_id", candidate.id)
-      .maybeSingle<ScreeningResultRecord>()
+      .maybeSingle<ScreeningResultRecord>(),
+    supabase
+      .from("research_profiles")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<ResearchProfileRecord>()
   ]);
 
   if (applicationError) {
@@ -198,8 +205,17 @@ export async function getCandidateDetail(
     throw new Error(`Failed to load candidate audit logs: ${auditError.message}`);
   }
 
+  const screeningError = screeningResultResult.error;
+  const screeningResult = screeningResultResult.data ?? null;
+  const researchProfileError = researchProfileResult.error;
+  const researchProfile = researchProfileResult.data ?? null;
+
   if (screeningError) {
-    throw new Error(`Failed to load candidate screening result: ${screeningError.message}`);
+    console.error("Failed to load candidate screening result", screeningError);
+  }
+
+  if (researchProfileError) {
+    console.error("Failed to load candidate research profile", researchProfileError);
   }
 
   if (!application || !role) {
@@ -214,7 +230,8 @@ export async function getCandidateDetail(
     application,
     role,
     auditLogs: auditLogs ?? [],
-    screeningResult: screeningResult ?? null
+    screeningResult: screeningResult ?? null,
+    researchProfile: researchProfile ?? null
   };
 }
 

@@ -9,7 +9,7 @@ The system can now:
 - download the uploaded resume
 - extract text from PDF or DOCX files
 - compare the resume text against the specific role the candidate applied for
-- generate structured screening output with the LLM
+- generate structured screening output with Gemini
 - store that result in `screening_results`
 - update candidate score and status deterministically
 - let an admin manually override the shortlist outcome
@@ -32,13 +32,16 @@ Profile enrichment can come later for shortlisted candidates, when the system al
 
 ## How AI is used here
 
-AI is used for one narrow task:
+Gemini is used for one narrow task:
 
 - extract structured evidence from resume text
 - evaluate fit against the role
 - return a fit score and rationale
 
 The model is explicitly instructed to use only the resume text and role details. It does not browse, enrich, or infer external profile information.
+
+This version uses the official Google Gemini Developer API SDK while preserving
+structured output validation in application code.
 
 ## Where deterministic logic still controls state
 

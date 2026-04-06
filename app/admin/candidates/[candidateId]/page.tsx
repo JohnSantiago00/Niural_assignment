@@ -13,11 +13,17 @@ import {
   overrideCandidateShortlistAction,
   runCandidateScreeningAction
 } from "@/lib/screening/actions";
+import { runCandidateEnrichmentAction } from "@/lib/enrichment/actions";
+import { isCandidateEligibleForEnrichment } from "@/lib/enrichment/run-enrichment";
 import {
   getCandidateStatusLabel,
   type CandidateWorkflowStatus
 } from "@/lib/utils/candidate-status";
-import type { EducationEntry, PastEmployerEntry } from "@/types/database";
+import type {
+  EducationEntry,
+  PastEmployerEntry,
+  ResearchProfileRecord
+} from "@/types/database";
 
 type CandidateDetailPageProps = {
   params: Promise<{
@@ -26,6 +32,8 @@ type CandidateDetailPageProps = {
   searchParams: Promise<{
     screening?: string;
     screeningError?: string;
+    enrichment?: string;
+    enrichmentError?: string;
     override?: string;
     overrideError?: string;
   }>;
@@ -40,6 +48,72 @@ function formatDateTime(value: string) {
 
 function formatAiScore(value: number | null) {
   return value === null ? "Not scored yet" : value.toFixed(1);
+}
+
+function getConfidenceLabel(value: number) {
+  if (value >= 75) {
+    return "High";
+  }
+
+  if (value >= 40) {
+    return "Medium";
+  }
+
+  return "Low";
+}
+
+function getConfidenceDescription(value: number) {
+  if (value >= 75) {
+    return "Strong source coverage and generally consistent supporting evidence.";
+  }
+
+  if (value >= 40) {
+    return "Partial source coverage or moderate evidence quality.";
+  }
+
+  return "Sparse, limited, or inconsistent source evidence. Treat enrichment as low-confidence context.";
+}
+
+function getDiscrepancySeverityClasses(
+  severity: ResearchProfileRecord["discrepancy_flags"][number]["severity"]
+) {
+  if (severity === "high") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  if (severity === "medium") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-slate-200 bg-slate-100 text-slate-700";
+}
+
+function getLinkedInSourceLabel(status: ResearchProfileRecord["linkedin_source_status"]) {
+  switch (status) {
+    case "fetched_direct":
+      return "Fetched directly";
+    case "blocked":
+      return "Blocked";
+    case "unavailable":
+      return "Unavailable";
+    case "missing":
+      return "Not provided";
+  }
+}
+
+function getLinkedInSourceBadgeClasses(
+  status: ResearchProfileRecord["linkedin_source_status"]
+) {
+  switch (status) {
+    case "fetched_direct":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "blocked":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "unavailable":
+      return "border-slate-200 bg-slate-100 text-slate-700";
+    case "missing":
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
 }
 
 function formatShortlistDecision(score: number | null, threshold: number) {
@@ -129,6 +203,7 @@ export default async function CandidateDetailPage({
   }
 
   const status = detail.candidate.current_status as CandidateWorkflowStatus;
+  const canRunEnrichment = isCandidateEligibleForEnrichment(detail.candidate);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-14">
@@ -146,6 +221,18 @@ export default async function CandidateDetailPage({
         {resolvedSearchParams.screeningError ? (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {resolvedSearchParams.screeningError}
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.enrichment === "completed" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Profile enrichment completed successfully.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.enrichmentError ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {resolvedSearchParams.enrichmentError}
           </div>
         ) : null}
 
@@ -187,6 +274,20 @@ export default async function CandidateDetailPage({
                 {detail.screeningResult ? "Run AI screening again" : "Run AI screening"}
               </button>
             </form>
+            {canRunEnrichment ? (
+              <form action={runCandidateEnrichmentAction.bind(null, detail.candidate.id)}>
+                <button
+                  type="submit"
+                  className="inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accentDark"
+                >
+                  {detail.researchProfile ? "Run profile enrichment again" : "Run profile enrichment"}
+                </button>
+              </form>
+            ) : (
+              <p className="max-w-xs text-right text-sm text-slate-500">
+                Profile enrichment is available only after the candidate reaches the shortlisted stage.
+              </p>
+            )}
           </div>
         </div>
 
@@ -408,6 +509,158 @@ export default async function CandidateDetailPage({
                 <p className="mt-6 border-t border-line pt-6 text-sm text-slate-500">
                   Run AI screening to generate structured resume evidence, a fit score,
                   recruiter-friendly rationale, strengths, and gaps for this candidate.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Profile enrichment</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Supplemental online research generated only for shortlisted candidates using submitted profile links.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+              {detail.researchProfile ? (
+                <div className="space-y-6">
+                  <div className="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Candidate brief
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                        {detail.researchProfile.candidate_brief}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Enrichment confidence
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                        {detail.researchProfile.confidence_score}
+                        <span className="ml-2 text-sm font-medium text-slate-500">
+                          {getConfidenceLabel(detail.researchProfile.confidence_score)}
+                        </span>
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {getConfidenceDescription(detail.researchProfile.confidence_score)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        LinkedIn summary
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ${getLinkedInSourceBadgeClasses(detail.researchProfile.linkedin_source_status)}`}
+                        >
+                          {getLinkedInSourceLabel(detail.researchProfile.linkedin_source_status)}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {detail.researchProfile.linkedin_summary ??
+                          "Automated LinkedIn enrichment could not gather enough public evidence. The submitted LinkedIn URL is still available for manual review."}
+                      </p>
+                      {detail.researchProfile.linkedin_source_note ? (
+                        <p className="mt-3 text-sm leading-6 text-slate-500">
+                          {detail.researchProfile.linkedin_source_note}
+                        </p>
+                      ) : null}
+                      <p className="mt-3 text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Source: {detail.researchProfile.linkedin_url_used ?? "Not provided"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        GitHub summary
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {detail.researchProfile.github_summary ?? "GitHub enrichment was unavailable."}
+                      </p>
+                      <p className="mt-3 text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Source: {detail.researchProfile.github_url_used ?? "Not provided"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Portfolio summary
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {detail.researchProfile.portfolio_summary ?? "Portfolio enrichment was unavailable."}
+                      </p>
+                      <p className="mt-3 text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Source: {detail.researchProfile.portfolio_url_used ?? "Not provided"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        X / Twitter summary
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {detail.researchProfile.x_summary ?? "X/Twitter was not included in this MVP."}
+                      </p>
+                      <p className="mt-3 text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Source: {detail.researchProfile.x_url_used ?? "Not used"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      Discrepancy flags
+                    </p>
+                    {detail.researchProfile.discrepancy_flags.length > 0 ? (
+                      <ul className="mt-3 space-y-3">
+                        {detail.researchProfile.discrepancy_flags.map((item) => (
+                          <li
+                            key={`${item.type}-${item.description}`}
+                            className="rounded-2xl border border-line bg-white px-4 py-3"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ${getDiscrepancySeverityClasses(item.severity)}`}
+                              >
+                                {item.severity}
+                              </span>
+                              <span className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                                {item.type.replaceAll("_", " ")}
+                              </span>
+                              {item.source ? (
+                                <span className="text-xs uppercase tracking-[0.12em] text-slate-400">
+                                  {item.source}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {item.description}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-500">
+                        No clear discrepancies were identified from the available sources.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : canRunEnrichment ? (
+                <p className="text-sm text-slate-500">
+                  Run profile enrichment to generate the candidate brief, conservative discrepancy review, and source summaries from the submitted links.
+                </p>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Profile enrichment is gated to shortlisted candidates so the system only spends research effort on candidates already in the interview-worthy path.
                 </p>
               )}
             </div>

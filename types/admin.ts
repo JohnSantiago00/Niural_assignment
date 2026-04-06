@@ -5,6 +5,7 @@ import type {
   ApplicationRecord,
   AuditLogRecord,
   CandidateRecord,
+  ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
 } from "@/types/database";
@@ -35,4 +36,5 @@ export type CandidateDetailView = {
   role: RoleRecord;
   auditLogs: AuditLogRecord[];
   screeningResult: ScreeningResultRecord | null;
+  researchProfile: ResearchProfileRecord | null;
 };
