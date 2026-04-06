@@ -15,7 +15,13 @@ import type {
   CandidateDashboardRow,
   CandidateDetailView
 } from "@/types/admin";
-import type { ApplicationRecord, CandidateRecord, RoleRecord } from "@/types/database";
+import type {
+  ApplicationRecord,
+  CandidateRecord,
+  ResearchProfileRecord,
+  RoleRecord,
+  ScreeningResultRecord
+} from "@/types/database";
 
 function normalizeStatus(value: string): CandidateWorkflowStatus {
   return isCandidateWorkflowStatus(value) ? value : "applied";
@@ -160,7 +166,9 @@ export async function getCandidateDetail(
   const [
     { data: application, error: applicationError },
     { data: role, error: roleError },
-    { data: auditLogs, error: auditError }
+    { data: auditLogs, error: auditError },
+    screeningResultResult,
+    researchProfileResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -172,7 +180,17 @@ export async function getCandidateDetail(
       .from("audit_logs")
       .select("*")
       .eq("candidate_id", candidate.id)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("screening_results")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<ScreeningResultRecord>(),
+    supabase
+      .from("research_profiles")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<ResearchProfileRecord>()
   ]);
 
   if (applicationError) {
@@ -187,6 +205,19 @@ export async function getCandidateDetail(
     throw new Error(`Failed to load candidate audit logs: ${auditError.message}`);
   }
 
+  const screeningError = screeningResultResult.error;
+  const screeningResult = screeningResultResult.data ?? null;
+  const researchProfileError = researchProfileResult.error;
+  const researchProfile = researchProfileResult.data ?? null;
+
+  if (screeningError) {
+    console.error("Failed to load candidate screening result", screeningError);
+  }
+
+  if (researchProfileError) {
+    console.error("Failed to load candidate research profile", researchProfileError);
+  }
+
   if (!application || !role) {
     return null;
   }
@@ -198,7 +229,9 @@ export async function getCandidateDetail(
     } as CandidateRecord,
     application,
     role,
-    auditLogs: auditLogs ?? []
+    auditLogs: auditLogs ?? [],
+    screeningResult: screeningResult ?? null,
+    researchProfile: researchProfile ?? null
   };
 }
 

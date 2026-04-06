@@ -5,7 +5,9 @@ import type {
   ApplicationRecord,
   AuditLogRecord,
   CandidateRecord,
-  RoleRecord
+  ResearchProfileRecord,
+  RoleRecord,
+  ScreeningResultRecord
 } from "@/types/database";
 import type { CandidateWorkflowStatus } from "@/lib/utils/candidate-status";
 
@@ -33,4 +35,6 @@ export type CandidateDetailView = {
   application: ApplicationRecord;
   role: RoleRecord;
   auditLogs: AuditLogRecord[];
+  screeningResult: ScreeningResultRecord | null;
+  researchProfile: ResearchProfileRecord | null;
 };

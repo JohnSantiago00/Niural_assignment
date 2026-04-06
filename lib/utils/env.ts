@@ -2,6 +2,8 @@ type EnvKey =
   | "NEXT_PUBLIC_SUPABASE_URL"
   | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
   | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY"
+  | "GEMINI_API_KEY"
+  | "GEMINI_MODEL"
   | "SUPABASE_SERVICE_ROLE_KEY"
   | "SUPABASE_RESUME_BUCKET"
   | "RESEND_API_KEY"
@@ -43,4 +45,8 @@ export function getSupabasePublishableKey() {
   }
 
   return value;
+}
+
+export function getGeminiModel() {
+  return process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 }

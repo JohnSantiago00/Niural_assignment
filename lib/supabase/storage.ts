@@ -43,3 +43,18 @@ export async function deleteResumeFile(path: string) {
     throw new Error(`Failed to delete resume: ${error.message}`);
   }
 }
+
+/**
+ * Downloads the raw resume file for screening.
+ */
+export async function downloadResumeFile(path: string) {
+  const supabase = createSupabaseAdminClient();
+  const bucket = getRequiredEnv("SUPABASE_RESUME_BUCKET");
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+
+  if (error || !data) {
+    throw new Error(`Failed to download resume: ${error?.message ?? "Unknown storage error"}`);
+  }
+
+  return data;
+}
