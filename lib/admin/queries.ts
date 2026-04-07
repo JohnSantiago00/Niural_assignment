@@ -19,6 +19,8 @@ import type {
 import type {
   ApplicationRecord,
   CandidateRecord,
+  InterviewFeedbackRecord,
+  InterviewTranscriptRecord,
   ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
@@ -170,7 +172,9 @@ export async function getCandidateDetail(
     { data: auditLogs, error: auditError },
     screeningResultResult,
     researchProfileResult,
-    schedulingDetailResult
+    schedulingDetailResult,
+    interviewTranscriptResult,
+    interviewFeedbackResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -193,7 +197,17 @@ export async function getCandidateDetail(
       .select("*")
       .eq("candidate_id", candidate.id)
       .maybeSingle<ResearchProfileRecord>(),
-    getCandidateSchedulingDetail(candidate.id)
+    getCandidateSchedulingDetail(candidate.id),
+    supabase
+      .from("interview_transcripts")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<InterviewTranscriptRecord>(),
+    supabase
+      .from("interview_feedback")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<InterviewFeedbackRecord>()
   ]);
 
   if (applicationError) {
@@ -213,6 +227,10 @@ export async function getCandidateDetail(
   const researchProfileError = researchProfileResult.error;
   const researchProfile = researchProfileResult.data ?? null;
   const schedulingDetail = schedulingDetailResult;
+  const interviewTranscriptError = interviewTranscriptResult.error;
+  const interviewTranscript = interviewTranscriptResult.data ?? null;
+  const interviewFeedbackError = interviewFeedbackResult.error;
+  const interviewFeedback = interviewFeedbackResult.data ?? null;
 
   if (screeningError) {
     console.error("Failed to load candidate screening result", screeningError);
@@ -220,6 +238,14 @@ export async function getCandidateDetail(
 
   if (researchProfileError) {
     console.error("Failed to load candidate research profile", researchProfileError);
+  }
+
+  if (interviewTranscriptError) {
+    console.error("Failed to load candidate interview transcript", interviewTranscriptError);
+  }
+
+  if (interviewFeedbackError) {
+    console.error("Failed to load candidate interview feedback", interviewFeedbackError);
   }
 
   if (!application || !role) {
@@ -236,6 +262,8 @@ export async function getCandidateDetail(
     auditLogs: auditLogs ?? [],
     interview: schedulingDetail.interview,
     calendarHolds: schedulingDetail.calendarHolds,
+    interviewTranscript: interviewTranscript ?? null,
+    interviewFeedback: interviewFeedback ?? null,
     screeningResult: screeningResult ?? null,
     researchProfile: researchProfile ?? null
   };

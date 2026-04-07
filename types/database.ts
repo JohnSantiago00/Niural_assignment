@@ -55,6 +55,38 @@ export type CalendarHoldRecord = {
   selection_token: string;
   created_at: string;
 };
+export type TranscriptSource =
+  | "simulated"
+  | "fireflies_mock"
+  | "fireflies_real_ready";
+export type InterviewTranscriptRecord = {
+  id: string;
+  candidate_id: string;
+  interview_id: string;
+  transcript_text: string;
+  transcript_source: TranscriptSource;
+  overall_assessment: string;
+  strengths_observed: string[];
+  concerns_observed: string[];
+  key_topics_discussed: string[];
+  recommended_follow_up: string[];
+  concise_summary: string;
+  model_name: string;
+  completed_at: string;
+  created_at: string;
+  updated_at: string;
+};
+export type InterviewFeedbackRecord = {
+  id: string;
+  candidate_id: string;
+  interview_id: string;
+  rating: number;
+  comments: string;
+  actor: string;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+};
 export type ResearchProfileRecord = {
   id: string;
   candidate_id: string;
@@ -287,6 +319,44 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<CalendarHoldRecord>;
+        Relationships: [];
+      };
+      interview_transcripts: {
+        Row: InterviewTranscriptRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interview_id: string;
+          transcript_text: string;
+          transcript_source?: TranscriptSource;
+          overall_assessment: string;
+          strengths_observed?: string[];
+          concerns_observed?: string[];
+          key_topics_discussed?: string[];
+          recommended_follow_up?: string[];
+          concise_summary: string;
+          model_name: string;
+          completed_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<InterviewTranscriptRecord>;
+        Relationships: [];
+      };
+      interview_feedback: {
+        Row: InterviewFeedbackRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interview_id: string;
+          rating: number;
+          comments: string;
+          actor?: string;
+          submitted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<InterviewFeedbackRecord>;
         Relationships: [];
       };
       screening_results: {

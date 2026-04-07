@@ -9,6 +9,7 @@ The app currently covers:
 - Phase 02B: AI resume screening against the applied role
 - Phase 02C: shortlist-only candidate research and profile enrichment
 - Phase 03: deterministic interview scheduling with DB-backed slot holds, Google Calendar free/busy, confirmed event creation, and an admin-approved reschedule loop
+- Phase 04: simulated interview completion, AI transcript summary, and interviewer feedback
 
 The product is intentionally designed to be:
 
@@ -28,6 +29,7 @@ Implemented today:
 - manual AI screening with persisted `screening_results`
 - manual profile enrichment for shortlisted candidates with persisted `research_profiles`
 - interview slot offering with DB-backed holds, Google Calendar-backed availability, and a public tokenized selection page
+- simulated interview-complete flow with persisted transcript summary and interviewer feedback
 - admin override support for shortlist decisions
 - admin-only QA hard delete for fully resetting test candidates and their application records
 - Supabase Auth login plus `admin_users` allowlist
@@ -88,6 +90,7 @@ Real:
 - Google Calendar free/busy lookup for scheduling
 - Google Calendar event creation for confirmed interviews
 - Resend scheduling-link delivery plus human-readable confirmation emails
+- simulated transcript generation plus Gemini interview summarization
 
 MVP / intentionally limited:
 
@@ -97,6 +100,7 @@ MVP / intentionally limited:
 - enrichment is manual, not queued
 - scheduling uses one configured Google Calendar instead of a full multi-user calendar linking flow
 - hard delete is present only as an admin QA reset utility, not as a normal end-user product feature
+- Phase 04 uses a simulated transcript path for demo; the storage shape is ready for a real notetaker provider later
 - PDF parsing uses a pragmatic Node-friendly parser and may be imperfect on layout-heavy files
 
 ## Environment Variables
@@ -152,6 +156,7 @@ npm install
 - [0008_research_profiles_linkedin_source_metadata.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0008_research_profiles_linkedin_source_metadata.sql)
 - [0009_phase_03_scheduling.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0009_phase_03_scheduling.sql)
 - [0010_phase_03_reschedule_hardening.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0010_phase_03_reschedule_hardening.sql)
+- [0011_phase_04_interview_notetaker.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0011_phase_04_interview_notetaker.sql)
 
 3. Create at least one Supabase Auth user and add that email to `public.admin_users`
 
@@ -185,8 +190,10 @@ Admin side:
 6. run profile enrichment only for shortlisted candidates
 7. offer interview slots from real Google Calendar availability and review hold / scheduling state
 8. handle candidate reschedule requests through an admin approval loop with AI-extracted preference hints
-9. review brief, discrepancy flags, and source summaries
-10. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application
+9. simulate interview completion after a scheduled interview and review the AI interview summary
+10. save interviewer feedback after the interview is completed
+11. review brief, discrepancy flags, and source summaries
+12. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application
 
 ## Key Tradeoffs / Assumptions
 
@@ -196,6 +203,7 @@ Admin side:
 - The system stores screening and enrichment separately so those layers can evolve independently.
 - Scheduling still relies on DB-backed holds even with Google Calendar because free/busy alone does not reserve tentative options during candidate selection.
 - Google Calendar and Resend are best-effort external side effects layered on top of DB truth; failed invite/email delivery does not roll back a valid in-app scheduling state.
+- Phase 04 uses a simulated interview transcript so the notetaker flow can be demoed without a live meeting bot.
 - The admin-only hard delete removes the application row as well as candidate-linked artifacts because duplicate protection is enforced on `applications(role_id, email)`.
 - The admin tool is protected, but this is still a prototype and not a production-grade enterprise auth system.
 
@@ -208,6 +216,7 @@ Admin side:
 - [Phase C Screening Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-screening-notes.md)
 - [Phase C Enrichment Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-enrichment-notes.md)
 - [Phase 03 Scheduling Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-03-scheduling-notes.md)
+- [Phase 04 Interview Notetaker Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-04-interview-notetaker-notes.md)
 
 ## Next Steps
 

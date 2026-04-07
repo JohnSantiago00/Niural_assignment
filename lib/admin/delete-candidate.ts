@@ -10,6 +10,8 @@ import type { ApplicationRecord, CandidateRecord } from "@/types/database";
 async function deleteRows(
   table:
     | "calendar_holds"
+    | "interview_feedback"
+    | "interview_transcripts"
     | "interviews"
     | "research_profiles"
     | "screening_results"
@@ -56,6 +58,8 @@ export async function hardDeleteCandidate(candidateId: string) {
   // The schema has cascades, but explicit child cleanup keeps this QA reset
   // obvious and robust as the prototype grows new candidate-linked artifacts.
   await deleteRows("calendar_holds", "candidate_id", candidate.id);
+  await deleteRows("interview_feedback", "candidate_id", candidate.id);
+  await deleteRows("interview_transcripts", "candidate_id", candidate.id);
   await deleteRows("interviews", "candidate_id", candidate.id);
   await deleteRows("research_profiles", "candidate_id", candidate.id);
   await deleteRows("screening_results", "candidate_id", candidate.id);
