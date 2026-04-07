@@ -1,7 +1,7 @@
 /**
- * Phase 04 demo transcript generator. This intentionally does not pretend a
- * real meeting happened; it creates a grounded simulated transcript so the
- * notetaker flow can be demoed without Fireflies or a live call.
+ * Phase 04 transcript generator for the admin-only simulated completion path.
+ * It intentionally does not pretend a real meeting happened; it creates a
+ * grounded transcript-shaped artifact that can later be replaced by a provider.
  */
 import type {
   CandidateRecord,
@@ -27,7 +27,7 @@ export function buildSimulatedInterviewTranscript(input: {
     "No enrichment brief is available, so the simulated discussion focuses on resume and role fit.";
 
   return [
-    `[Simulated transcript source: admin demo path, not a real meeting recording.]`,
+    `[Transcript source: simulated interview completion, not a live meeting recording.]`,
     `Interviewer: Thanks for speaking with us, ${candidate.full_name}. Today we are discussing the ${role.title} role on the ${role.team} team.`,
     `${candidate.full_name}: Thanks for having me. I am excited to talk about how my background maps to this role.`,
     `Interviewer: The role emphasizes these requirements: ${requirements || "the published role requirements"}. Can you walk me through the most relevant parts of your experience?`,

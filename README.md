@@ -38,7 +38,6 @@ Implemented today:
 
 Not implemented yet:
 
-- transcripts / interview notes
 - Slack onboarding
 - heavy scraping or official third-party social integrations
 
@@ -50,18 +49,18 @@ Not implemented yet:
 - Supabase Postgres + Storage + Auth
 - Google Gemini Developer API via `@google/genai`
 - Zod for validation
-- Resend for scheduling-link and confirmation emails
+- Resend for candidate workflow emails and signed-offer alerts
 
 ## Why This Stack
 
 - Next.js App Router keeps UI, server actions, and API routes in one interview-friendly codebase.
 - Supabase gives a simple hosted Postgres + storage + auth foundation without adding Prisma or extra infrastructure.
-- Gemini is used for structured screening and enrichment output, while app logic still owns workflow state.
+- Gemini is used for structured screening, enrichment, interview summaries, and offer-letter drafting, while app logic still owns workflow state.
 - Zod keeps AI output validation and user input validation explicit before any database writes happen.
 
 ## AI Usage
 
-AI is used in two separate layers:
+AI is used in four separate layers:
 
 1. Screening
    - resume text + role JD in
@@ -72,12 +71,22 @@ AI is used in two separate layers:
    - submitted profile links + screening context in
    - source summaries, conservative discrepancy flags, confidence score, and candidate brief out
 
+3. Interview summary
+   - transcript text in
+   - structured interview assessment, strengths, concerns, topics, and follow-up out
+
+4. Offer drafting
+   - hiring-manager offer inputs + candidate context in
+   - professional plain-English offer letter out
+
 AI is not used to:
 
 - decide who can access admin routes
 - decide eligibility for enrichment
 - directly mutate workflow state
 - browse arbitrary external data without app-provided source content
+- choose final scheduling slots
+- mark offers as sent or signed
 
 ## Real vs Mocked
 
@@ -164,6 +173,7 @@ npm install
 - [0010_phase_03_reschedule_hardening.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0010_phase_03_reschedule_hardening.sql)
 - [0011_phase_04_interview_notetaker.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0011_phase_04_interview_notetaker.sql)
 - [0012_phase_05_offers.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0012_phase_05_offers.sql)
+- [0013_phase_05_offer_delivery_polish.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0013_phase_05_offer_delivery_polish.sql)
 
 3. Create at least one Supabase Auth user and add that email to `public.admin_users`
 
@@ -199,8 +209,8 @@ Admin side:
 8. handle candidate reschedule requests through an admin approval loop with AI-extracted preference hints
 9. simulate interview completion after a scheduled interview and review the AI interview summary
 10. save interviewer feedback after the interview is completed
-11. generate an offer letter from short hiring-manager inputs
-12. send the candidate a tokenized signing link
+11. send an offer from short hiring-manager inputs; the app generates the letter, stores it, and emails the tokenized signing link
+12. review offer delivery metadata such as recipient, sent time, and email status
 13. review signed-offer state after the candidate draws a signature in the portal
 14. review brief, discrepancy flags, and source summaries
 15. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application

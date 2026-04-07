@@ -2,64 +2,35 @@
 
 ## High-level system
 
-The app is a single Next.js App Router codebase with:
-
-- public candidate-facing pages
-- internal admin pages
-- server-first workflows for screening and enrichment
-- Supabase as the main backend system of record
+The app is a single Next.js App Router codebase with public candidate pages,
+protected admin pages, and server-first workflow helpers. Supabase Postgres is
+the system of record, Supabase Storage holds resumes, Gemini handles bounded AI
+generation tasks, Google Calendar supports interview scheduling, and Resend
+handles best-effort candidate/admin email delivery.
 
 Core layers:
 
 - UI: `app/` and `components/`
-- workflow logic: `lib/applications`, `lib/screening`, `lib/enrichment`
+- workflow logic: `lib/applications`, `lib/screening`, `lib/enrichment`, `lib/scheduling`, `lib/interview`, `lib/offers`
 - integrations: `lib/supabase`, `lib/gemini`, `lib/email`
 - shared types and validation: `types/`, `lib/utils`, Zod schemas
 
-## Candidate flow
+## Candidate apply to offer flow
 
 1. Candidate browses roles on `/careers`
-2. Candidate opens role detail and applies
-3. Resume is uploaded to private Supabase Storage
-4. Application, candidate, and audit log records are created
-5. Confirmation email is attempted
+2. Candidate applies and uploads a resume
+3. Application, candidate, storage, and audit records are created
+4. Admin screens the resume with Gemini and deterministic shortlist logic
+5. Admin enriches shortlisted candidates from submitted profile links
+6. Admin offers interview slots from Google Calendar free/busy plus DB hold filtering
+7. Candidate selects a tokenized interview slot
+8. Admin completes the interview and stores transcript summary plus feedback
+9. Admin sends an offer from hiring-manager inputs
+10. Candidate opens `/offer/[signingToken]` and signs with the canvas pad
 
-## Screening flow
+## Deterministic workflow ownership
 
-1. Admin opens candidate detail page
-2. Admin manually triggers AI screening
-3. Server downloads the resume
-4. Resume text is extracted from PDF or DOCX
-5. Gemini receives:
-   - resume text
-   - role details / JD
-6. Gemini returns structured screening output
-7. Zod validates the output
-8. App stores `screening_results`
-9. App updates `candidates.ai_score`
-10. App updates `current_status` deterministically to `screened` or `shortlisted` unless admin override is active
-
-## Enrichment flow
-
-1. Candidate must already be shortlisted
-2. Admin manually triggers profile enrichment
-3. Server fetches candidate-submitted links where available
-4. Gemini receives:
-   - screening context
-   - role context
-   - fetched source content
-5. Gemini returns structured enrichment output
-6. Zod validates the output
-7. App stores `research_profiles`
-8. Candidate detail page renders:
-   - candidate brief
-   - confidence score
-   - source summaries
-   - conservative discrepancy flags
-
-## Where deterministic logic controls workflow
-
-Deterministic application logic controls:
+Application logic controls:
 
 - duplicate application protection
 - role-open checks
@@ -67,9 +38,13 @@ Deterministic application logic controls:
 - shortlist threshold behavior
 - admin override behavior
 - enrichment eligibility
+- Google Calendar/DB hold conflict prevention
+- interview completion state
+- offer eligibility, sent state, signing token validation, and first-signature-wins behavior
 - admin route protection
 
-Gemini generates structured analysis, but it does not directly control workflow state.
+Gemini generates structured or plain-text artifacts, but it does not directly
+change workflow state.
 
 ## Where Gemini is used
 
@@ -79,8 +54,27 @@ Current AI tasks:
 
 - resume screening
 - shortlist-only profile enrichment
+- interview transcript summarization
+- offer-letter drafting from explicit hiring-manager inputs
 
-Gemini output is always parsed and validated before the app writes to the database.
+Gemini output is parsed and validated before persistence. For offer letters, the
+app additionally strips common JSON/placeholder artifacts before saving the
+candidate-facing letter text.
+
+## Scheduling architecture
+
+Google Calendar is used for free/busy lookup and final event creation. The app
+still uses `calendar_holds` as the source of truth for tentative reservation
+because Google free/busy does not reserve options while a candidate is deciding.
+The Postgres exclusion constraint prevents overlapping active holds/confirmed
+slots for the same interviewer.
+
+## Offer signing architecture
+
+Offers are stored in `offers`. Admin sends an offer from a compact input form;
+the app generates the letter, stores it, sends the candidate email, and exposes a
+tokenized signing page. Signing captures a PNG data URL, timestamp, and request
+IP. Resend sends a best-effort alert to the hiring team when the offer is signed.
 
 ## Auth / admin access
 
@@ -90,15 +84,9 @@ Admin access uses:
 - `public.admin_users` as an allowlist for authorization
 - protected admin routes via middleware / proxy
 
-This keeps the prototype realistic without introducing a full RBAC framework.
+Candidate scheduling and signing pages are public but tokenized.
 
 ## What comes next
 
-Later phases can add:
-
-- scheduling
-- interview artifacts
-- offers / signing
-- onboarding handoff
-
-Those phases can sit on top of the existing candidate lifecycle, screening results, and research profile layers.
+The remaining major phase is onboarding handoff after signed offer, such as
+Slack onboarding or internal account setup.

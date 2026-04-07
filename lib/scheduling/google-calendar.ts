@@ -6,7 +6,7 @@
  */
 import crypto from "node:crypto";
 import { google } from "googleapis";
-import { getGeminiModel, getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
+import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
 
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
@@ -301,11 +301,10 @@ export async function createCalendarInterviewEvent(input: {
   const baseRequestBody = {
     summary: `${input.roleTitle} interview · ${input.candidateName}`,
     description: [
-      "Interview scheduled from the Niural hiring workflow MVP.",
+      "Interview scheduled from the Niural hiring workflow.",
       `Candidate: ${input.candidateName}`,
       `Candidate email: ${input.candidateEmail}`,
-      `Role: ${input.roleTitle}`,
-      `AI provider configured for the system: ${getGeminiModel()}`
+      `Role: ${input.roleTitle}`
     ].join("\n"),
     start: {
       dateTime: input.scheduledStart,

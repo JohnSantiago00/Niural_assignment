@@ -216,7 +216,7 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     .single<OfferRecord>();
 
   if (offerError) {
-    throw new Error(`Failed to save offer draft: ${offerError.message}`);
+    throw new Error(`Failed to save offer: ${offerError.message}`);
   }
 
   await supabase
@@ -224,7 +224,7 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     .update({ current_status: "offer_drafted" })
     .eq("id", candidate.id);
 
-  await writeAuditLog(candidate.id, "offer_drafted", "Offer letter draft generated for admin review.");
+  await writeAuditLog(candidate.id, "offer_drafted", "Offer letter prepared for sending.");
 
   return offer;
 }
@@ -290,17 +290,6 @@ export async function updateOfferEmailDelivery(
   if (error) {
     throw new Error(`Failed to update offer email status: ${error.message}`);
   }
-}
-
-export async function getOfferMinimumStartDate(candidateId: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data: transcript } = await supabase
-    .from("interview_transcripts")
-    .select("completed_at")
-    .eq("candidate_id", candidateId)
-    .maybeSingle<{ completed_at: string }>();
-
-  return transcript ? nextCalendarDate(transcript.completed_at) : "";
 }
 
 export async function getOfferSigningView(signingToken: string): Promise<OfferSigningView | null> {

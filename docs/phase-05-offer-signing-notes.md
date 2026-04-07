@@ -6,7 +6,7 @@ Phase 05 adds the offer workflow after interview completion.
 
 - Admin-only offer generation after a candidate reaches the post-interview stage.
 - A short hiring-manager input form for title, start date, compensation, manager, and custom terms.
-- Gemini-generated offer letter drafts that admins review before sending.
+- Gemini-generated offer letter content created behind the admin's `Send offer` action.
 - A public tokenized `/offer/[signingToken]` candidate signing page.
 - A custom in-app canvas signature pad.
 - Signature capture with timestamp and request IP.
@@ -27,9 +27,10 @@ The drawn signature is stored as a PNG data URL on the `offers` row. For this pr
 
 ## Signing Workflow
 
-1. Admin generates an offer draft from required offer inputs.
-2. The app saves the draft and creates a signing token.
-3. Admin sends the offer email through Resend.
+1. Admin enters the required offer inputs and clicks `Send offer`.
+2. The app validates the start date against the completed interview date.
+3. The app generates and stores the offer letter content.
+4. The app creates a signing token and sends the offer email through Resend.
 4. Candidate opens the tokenized signing page.
 5. Candidate reviews the offer letter and draws a signature.
 6. Candidate must check the agreement box before submit is enabled.
@@ -44,6 +45,7 @@ The drawn signature is stored as a PNG data URL on the `offers` row. For this pr
 - The offer letter is not rendered into a PDF in this phase.
 - Signature image data is stored directly in Postgres for MVP simplicity.
 - Email delivery is best-effort and does not control offer truth.
+- Admin review shows offer status, recipient, sent time, and signed state rather than the full letter body.
 - The signing token does not currently expire because demo reliability is prioritized.
 
 ## What Phase 06 Builds Next

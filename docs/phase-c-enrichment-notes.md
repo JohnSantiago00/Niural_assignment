@@ -117,10 +117,9 @@ That keeps the AI layer current while preserving the same app-level guarantees:
 - X/Twitter is not fully supported in this MVP
 - enrichment is manual rather than queued/background processed
 
-## What Phase 03 will build next
+## What later phases build on
 
-After enrichment, the next phase can add later-stage hiring workflow features
-such as:
+After enrichment, the later-stage workflow builds on shortlisted candidates with:
 
 - scheduling
 - interview support

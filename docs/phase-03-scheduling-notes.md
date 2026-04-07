@@ -5,11 +5,11 @@
 The MVP focuses on deterministic slot management with a real Google Calendar
 upgrade layered underneath it.
 
-Google Calendar now provides:
+Google Calendar provides:
 
 - real free/busy availability
-- real confirmed event creation
-- attendee invite delivery after confirmation
+- real confirmed event creation when the configured calendar permits it
+- attendee invite delivery when Google Workspace delegation or an equivalent permission model is available
 
 The application still keeps its own hold model because Google Calendar alone
 does not solve tentative reservation while a candidate is choosing between
@@ -62,7 +62,7 @@ would use Google Workspace domain-wide delegation or interviewer OAuth.
 
 The candidate-facing communication layer now has two email moments:
 
-1. offer email
+1. scheduling-link email
    - sent through Resend when interview options are created
    - includes the tokenized scheduling link
    - does not affect hold validity if delivery fails
@@ -98,8 +98,8 @@ The hold layer solves that:
    - updates the interview record
    - updates the candidate to `interview_scheduled`
 5. after confirmation:
-   - Google Calendar creates the real interview event
-   - Google sends the attendee invite
+   - Google Calendar creates the real interview event when configured access permits it
+   - Google sends the attendee invite when the account setup supports attendee delivery
    - Resend sends a separate human-readable confirmation email
 
 ## Reschedule and no-response handling
@@ -152,7 +152,7 @@ Simplified for MVP:
 2. Confirm the candidate receives the scheduling link email or the admin sees a clear best-effort delivery warning.
 3. Open the tokenized scheduling link and confirm one slot.
 4. Confirm the chosen hold becomes confirmed, the other holds are released, and the candidate status becomes `interview_scheduled`.
-5. Verify Google Calendar event creation succeeds and invite emails are sent to the candidate and interviewer.
+5. Verify Google Calendar event creation succeeds. In a personal Gmail service-account setup, expect a plain calendar event plus Resend confirmation rather than Google attendee invite delivery.
 6. Simulate a Google Calendar configuration failure and confirm the interview still remains scheduled while the app shows a clean follow-up warning instead of a raw provider error.
 7. Use the candidate scheduling page to request a different time with a note.
 8. Confirm admin sees the reschedule request, original note, AI preference summary, and current scheduling state.
@@ -168,12 +168,8 @@ Production-grade version later:
 - interviewer pools and panel coordination
 - automatic follow-up for expired holds
 
-## What Phase 04 would build next
+## What later phases build next
 
-After scheduling, later phases can add:
-
-- interview support and transcripts
-- post-interview notes
-- offer generation
-- e-signature
-- onboarding handoff
+Phase 04 and Phase 05 now build on this scheduling layer with interview summaries,
+feedback, offer generation, and e-signature. The remaining next step after offer
+signature is the onboarding handoff.

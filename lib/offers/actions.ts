@@ -107,55 +107,6 @@ export async function generateOfferDraftAction(candidateId: string, formData: Fo
       throw error;
     }
 
-    const message = error instanceof Error ? error.message : "Unable to generate offer.";
-    redirect(`${adminCandidatePath(candidateId)}?offerError=${encodeURIComponent(message)}`);
-  }
-}
-
-export async function sendOfferAction(candidateId: string) {
-  await requireAdminUser();
-
-  try {
-    const supabase = createSupabaseAdminClient();
-    const { data: offer, error: offerError } = await supabase
-      .from("offers")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .maybeSingle<OfferRecord>();
-
-    if (offerError || !offer) {
-      throw new Error(offerError?.message ?? "Generate an offer draft before sending.");
-    }
-
-    const sentOffer = await markOfferSent(offer.id);
-    const { candidate, role } = await getOfferEmailContext(sentOffer);
-    const appBaseUrl = getOptionalEnv("APP_BASE_URL") ?? "http://localhost:3000";
-    const signingLink = `${appBaseUrl}${offerSigningPath(sentOffer.signing_token)}`;
-    const delivery = await sendOfferEmail({
-      candidateName: candidate.full_name,
-      candidateEmail: candidate.email,
-      roleTitle: sentOffer.confirmed_job_title || role.title,
-      signingLink
-    });
-    const emailError = "error" in delivery ? delivery.error ?? null : null;
-    await updateOfferEmailDelivery(sentOffer.id, {
-      status: delivery.status,
-      recipient: candidate.email,
-      error: emailError
-    });
-
-    revalidatePath("/admin");
-    revalidatePath(adminCandidatePath(candidateId));
-    redirect(
-      `${adminCandidatePath(candidateId)}?offer=sent&offerDelivery=${encodeURIComponent(delivery.status)}${
-        emailError ? `&offerDeliveryError=${encodeURIComponent(emailError)}` : ""
-      }`
-    );
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
-
     const message = error instanceof Error ? error.message : "Unable to send offer.";
     redirect(`${adminCandidatePath(candidateId)}?offerError=${encodeURIComponent(message)}`);
   }

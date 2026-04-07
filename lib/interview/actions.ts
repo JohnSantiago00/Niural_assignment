@@ -150,7 +150,7 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
     await writeAuditLog(
       candidate.id,
       "interview_simulated_completed",
-      "Admin simulated interview completion and generated an AI interview summary from a demo transcript."
+      "Admin recorded interview completion and generated an interview summary from a simulated transcript."
     );
 
     revalidatePath(candidatePath(candidate.id));

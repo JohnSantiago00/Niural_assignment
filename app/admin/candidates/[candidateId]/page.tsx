@@ -267,10 +267,6 @@ function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams
     messages.push({ tone: "error", message: params.feedbackError });
   }
 
-  if (params.offer === "generated") {
-    messages.push({ tone: "success", message: "Offer draft generated." });
-  }
-
   if (params.offer === "sent") {
     messages.push({
       tone: "success",
@@ -1128,7 +1124,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
                   value={detail.researchProfile.portfolio_summary ?? "Unavailable"}
                   helper={detail.researchProfile.portfolio_url_used ?? undefined}
                 />
-                <MiniStat label="X / Twitter" value="Not included in this MVP" />
+                <MiniStat label="X / Twitter" value="Not connected" />
               </div>
             ) : null}
 
