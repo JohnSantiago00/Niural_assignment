@@ -28,6 +28,65 @@ function candidatePath(candidateId: string) {
   return `/admin/candidates/${candidateId}`;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientSupabaseError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+
+  return /fetch failed|network|timeout|temporar/i.test(message);
+}
+
+async function runSupabaseMutationWithRetry(
+  label: string,
+  operation: () => Promise<{ error: { message: string } | null }>
+) {
+  let lastError: { message: string } | null = null;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const { error } = await operation();
+
+    if (!error) {
+      return;
+    }
+
+    lastError = error;
+
+    if (!isTransientSupabaseError(error) || attempt === 3) {
+      break;
+    }
+
+    await sleep(250 * attempt);
+  }
+
+  throw new Error(`${label}: ${lastError?.message ?? "Unknown database error"}`);
+}
+
+async function markInterviewCompleted(input: {
+  candidateId: string;
+  interviewId: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+
+  // These writes are safe to retry and idempotent. Supabase/PostgREST can
+  // occasionally surface transient `fetch failed` errors during local QA; a
+  // short retry prevents the workflow from getting stuck after transcript save.
+  await runSupabaseMutationWithRetry("Failed to mark interview complete", async () =>
+    await supabase
+      .from("interviews")
+      .update({ interview_status: "completed" })
+      .eq("id", input.interviewId)
+  );
+
+  await runSupabaseMutationWithRetry("Failed to update candidate status after interview", async () =>
+    await supabase
+      .from("candidates")
+      .update({ current_status: "interview_completed" })
+      .eq("id", input.candidateId)
+  );
+}
+
 async function writeAuditLog(candidateId: string, actionType: string, actionDetail: string) {
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.from("audit_logs").insert({
@@ -69,6 +128,15 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
 
   try {
     const { candidate, interview } = await getInterviewContext(candidateId);
+
+    if (interview.interview_status === "completed") {
+      await markInterviewCompleted({
+        candidateId: candidate.id,
+        interviewId: interview.id
+      });
+      revalidatePath(candidatePath(candidate.id));
+      redirect(`${candidatePath(candidate.id)}?interview=completed`);
+    }
 
     if (interview.interview_status !== "scheduled") {
       throw new Error("Interview completion can be simulated only after an interview is scheduled.");
@@ -151,25 +219,10 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
       throw new Error(`Failed to store simulated interview transcript: ${transcriptError.message}`);
     }
 
-    const [{ error: interviewUpdateError }, { error: candidateUpdateError }] =
-      await Promise.all([
-        supabase
-          .from("interviews")
-          .update({ interview_status: "completed" })
-          .eq("id", interview.id),
-        supabase
-          .from("candidates")
-          .update({ current_status: "interview_completed" })
-          .eq("id", candidate.id)
-      ]);
-
-    if (interviewUpdateError) {
-      throw new Error(`Failed to mark interview complete: ${interviewUpdateError.message}`);
-    }
-
-    if (candidateUpdateError) {
-      throw new Error(`Failed to update candidate status after interview: ${candidateUpdateError.message}`);
-    }
+    await markInterviewCompleted({
+      candidateId: candidate.id,
+      interviewId: interview.id
+    });
 
     await writeAuditLog(
       candidate.id,

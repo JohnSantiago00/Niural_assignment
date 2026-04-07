@@ -195,6 +195,18 @@ function getOfferStatusLabel(status: string) {
   )[status] ?? status;
 }
 
+function cleanAdminErrorMessage(message: string) {
+  if (/fetch failed/i.test(message)) {
+    return "A temporary connection issue interrupted that update. Please retry the action.";
+  }
+
+  if (/RESOURCE_EXHAUSTED|quota|rate limit/i.test(message)) {
+    return "The AI provider is temporarily rate-limited. The app can retry shortly or use the built-in fallback path.";
+  }
+
+  return message;
+}
+
 function getSlackOnboardingStatusLabel(status: string) {
   return (
     {
@@ -296,7 +308,7 @@ function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams
   }
 
   if (params.interviewError) {
-    messages.push({ tone: "error", message: params.interviewError });
+    messages.push({ tone: "error", message: cleanAdminErrorMessage(params.interviewError) });
   }
 
   if (params.feedback === "saved") {
