@@ -16,6 +16,9 @@ import {
   simulateInterviewCompleteAction
 } from "@/lib/interview/actions";
 import {
+  generateOfferDraftAction
+} from "@/lib/offers/actions";
+import {
   approveRescheduleSlotsAction,
   offerInterviewSlotsAction,
   regenerateRescheduleSuggestionsAction
@@ -54,6 +57,11 @@ type CandidateDetailPageProps = {
     interviewError?: string;
     feedback?: string;
     feedbackError?: string;
+    offer?: string;
+    offerError?: string;
+    offerDelivery?: string;
+    offerDeliveryError?: string;
+    offerRecipient?: string;
     override?: string;
     overrideError?: string;
   }>;
@@ -77,6 +85,16 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium"
   }).format(new Date(value));
+}
+
+function getNextDateInputValue(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().slice(0, 10);
 }
 
 function formatAiScore(value: number | null) {
@@ -162,6 +180,24 @@ function getShortlistCopy(detail: CandidateDetailView) {
     : "AI does not recommend shortlist";
 }
 
+function getOfferStatusLabel(status: string) {
+  return (
+    {
+      drafting: "Drafting",
+      ready: "Ready to send",
+      sent: "Sent",
+      signed: "Signed",
+      cancelled: "Cancelled"
+    } as Record<string, string>
+  )[status] ?? status;
+}
+
+function isOfferEligible(detail: CandidateDetailView) {
+  return ["interview_completed", "offer_drafted", "offer_sent", "offer_signed"].includes(
+    detail.candidate.current_status
+  );
+}
+
 function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams"]>) {
   const messages: FlashMessage[] = [];
 
@@ -229,6 +265,35 @@ function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams
 
   if (params.feedbackError) {
     messages.push({ tone: "error", message: params.feedbackError });
+  }
+
+  if (params.offer === "generated") {
+    messages.push({ tone: "success", message: "Offer draft generated." });
+  }
+
+  if (params.offer === "sent") {
+    messages.push({
+      tone: "success",
+      message: `Offer email sent${params.offerRecipient ? ` to ${params.offerRecipient}` : ""}. Delivery may take a few seconds.`
+    });
+  }
+
+  if (params.offerDelivery === "skipped") {
+    messages.push({
+      tone: "warning",
+      message: "Offer is ready, but email delivery is not configured."
+    });
+  }
+
+  if (params.offerDelivery === "failed") {
+    messages.push({
+      tone: "warning",
+      message: `Offer is ready, but email delivery failed.${params.offerDeliveryError ? ` ${params.offerDeliveryError}` : ""}`
+    });
+  }
+
+  if (params.offerError) {
+    messages.push({ tone: "error", message: params.offerError });
   }
 
   if (params.override === "saved") {
@@ -450,11 +515,9 @@ function CandidateHero({
             </p>
           </div>
           <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Feedback</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Offer</p>
             <p className="mt-2 text-sm font-semibold text-white">
-              {detail.interviewFeedback
-                ? `${detail.interviewFeedback.rating}/5 saved`
-                : "Awaiting feedback"}
+              {detail.offer ? getOfferStatusLabel(detail.offer.offer_status) : "Not started"}
             </p>
           </div>
         </div>
@@ -749,8 +812,7 @@ function InterviewIntelligence({ detail }: { detail: CandidateDetailView }) {
         </div>
       ) : detail.interview.interview_status === "scheduled" ? (
         <p className="text-sm leading-6 text-slate-600">
-          Interview is scheduled. Complete it after the meeting, or use the demo simulation
-          action to generate the notetaker summary for review.
+          Interview is scheduled. Complete it after the meeting to add the notetaker summary for review.
         </p>
       ) : (
         <p className="text-sm leading-6 text-slate-500">
@@ -817,6 +879,150 @@ function InterviewFeedbackPanel({ detail }: { detail: CandidateDetailView }) {
           </div>
         </div>
       </form>
+    </SectionCard>
+  );
+}
+
+function OfferPanel({ detail }: { detail: CandidateDetailView }) {
+  const eligible = isOfferEligible(detail);
+  const defaultTitle = detail.offer?.confirmed_job_title ?? detail.role.title;
+  const minimumStartDate = getNextDateInputValue(detail.interviewTranscript?.completed_at);
+
+  return (
+    <SectionCard title="Offer" eyebrow="Phase 05">
+      {!eligible ? (
+        <p className="text-sm leading-6 text-slate-500">
+          Offer generation becomes available after the interview is completed.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <MiniStat
+              label="Offer status"
+              value={detail.offer ? getOfferStatusLabel(detail.offer.offer_status) : "Not started"}
+            />
+            <MiniStat
+              label="Job title"
+              value={detail.offer?.confirmed_job_title ?? detail.role.title}
+            />
+            <MiniStat
+              label="Signed"
+              value={detail.offer?.signed_at ? formatDateTime(detail.offer.signed_at) : "Awaiting signature"}
+            />
+          </div>
+
+          {detail.offer?.offer_status !== "signed" ? (
+          <div className="rounded-3xl border border-line bg-panel p-5">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">Send offer</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                The offer letter is generated, stored, and emailed in one step. Delivery may take a few seconds.
+              </p>
+            </div>
+            <form
+              action={generateOfferDraftAction.bind(null, detail.candidate.id)}
+              className="mt-5 grid gap-4 md:grid-cols-2"
+            >
+              <label>
+                <span className="text-sm font-semibold text-slate-900">Confirmed job title</span>
+                <input
+                  name="confirmedJobTitle"
+                  defaultValue={defaultTitle}
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+              </label>
+              <label>
+                <span className="text-sm font-semibold text-slate-900">Start date</span>
+                <input
+                  name="startDate"
+                  type="date"
+                  min={minimumStartDate}
+                  defaultValue={detail.offer?.start_date ?? ""}
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+                {minimumStartDate ? (
+                  <span className="mt-1 block text-xs text-slate-500">
+                    Must be after the interview date.
+                  </span>
+                ) : null}
+              </label>
+              <label>
+                <span className="text-sm font-semibold text-slate-900">Base salary</span>
+                <input
+                  name="baseSalary"
+                  defaultValue={detail.offer?.base_salary ?? ""}
+                  placeholder="$120,000"
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+              </label>
+              <label>
+                <span className="text-sm font-semibold text-slate-900">
+                  Equity or bonus
+                </span>
+                <input
+                  name="equityOrBonus"
+                  defaultValue={detail.offer?.equity_or_bonus ?? ""}
+                  placeholder="Optional"
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+              </label>
+              <label>
+                <span className="text-sm font-semibold text-slate-900">Reporting manager</span>
+                <input
+                  name="reportingManager"
+                  defaultValue={detail.offer?.reporting_manager ?? ""}
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+              </label>
+              <label className="md:col-span-2">
+                <span className="text-sm font-semibold text-slate-900">Custom terms / notes</span>
+                <textarea
+                  name="customTerms"
+                  rows={3}
+                  defaultValue={detail.offer?.custom_terms ?? ""}
+                  placeholder="Optional offer-specific terms to include."
+                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                />
+              </label>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark"
+                >
+                  Send offer
+                </button>
+              </div>
+            </form>
+          </div>
+          ) : null}
+
+          {detail.offer ? (
+            <div className="rounded-3xl border border-line bg-panel p-5">
+              <p className="text-sm font-semibold text-slate-950">Offer delivery</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <MiniStat label="Recipient" value={detail.offer.offer_email_recipient ?? detail.candidate.email} />
+                <MiniStat
+                  label="Sent"
+                  value={detail.offer.sent_at ? formatDateTime(detail.offer.sent_at) : "Not sent"}
+                  helper={
+                    detail.offer.offer_email_status
+                      ? `Email ${detail.offer.offer_email_status}`
+                      : "Delivery may take a few seconds after sending."
+                  }
+                />
+              </div>
+              {detail.offer.signature_image_data ? (
+                <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-emerald-950">Signed offer received</p>
+                  <p className="mt-1 text-sm text-emerald-900">
+                    Signed {detail.offer.signed_at ? formatDateTime(detail.offer.signed_at) : "successfully"}.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      )}
     </SectionCard>
   );
 }
@@ -1155,6 +1361,7 @@ export default async function CandidateDetailPage({
           />
           <InterviewIntelligence detail={detail} />
           <InterviewFeedbackPanel detail={detail} />
+          <OfferPanel detail={detail} />
           <CandidateIntelligence detail={detail} />
           <ActivityTimeline detail={detail} />
           <SecondaryAdminTools detail={detail} />

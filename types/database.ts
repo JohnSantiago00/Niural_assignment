@@ -87,6 +87,34 @@ export type InterviewFeedbackRecord = {
   created_at: string;
   updated_at: string;
 };
+export type OfferStatus = "drafting" | "ready" | "sent" | "signed" | "cancelled";
+export type OfferRecord = {
+  id: string;
+  candidate_id: string;
+  application_id: string;
+  offer_status: OfferStatus;
+  confirmed_job_title: string;
+  start_date: string;
+  base_salary: string;
+  compensation_structure: string;
+  equity_or_bonus: string | null;
+  reporting_manager: string;
+  custom_terms: string | null;
+  generated_letter: string;
+  generated_model_name: string;
+  signing_token: string;
+  signing_token_expires_at: string | null;
+  offer_email_status: "sent" | "failed" | "skipped" | null;
+  offer_email_error: string | null;
+  offer_email_recipient: string | null;
+  sent_at: string | null;
+  signed_at: string | null;
+  signer_ip: string | null;
+  signer_name: string | null;
+  signature_image_data: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type ResearchProfileRecord = {
   id: string;
   candidate_id: string;
@@ -357,6 +385,38 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<InterviewFeedbackRecord>;
+        Relationships: [];
+      };
+      offers: {
+        Row: OfferRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          application_id: string;
+          offer_status?: OfferStatus;
+          confirmed_job_title: string;
+          start_date: string;
+          base_salary: string;
+          compensation_structure: string;
+          equity_or_bonus?: string | null;
+          reporting_manager: string;
+          custom_terms?: string | null;
+          generated_letter: string;
+          generated_model_name: string;
+          signing_token: string;
+          signing_token_expires_at?: string | null;
+          offer_email_status?: OfferRecord["offer_email_status"];
+          offer_email_error?: string | null;
+          offer_email_recipient?: string | null;
+          sent_at?: string | null;
+          signed_at?: string | null;
+          signer_ip?: string | null;
+          signer_name?: string | null;
+          signature_image_data?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<OfferRecord>;
         Relationships: [];
       };
       screening_results: {

@@ -15,7 +15,8 @@ type EnvKey =
   | "SUPABASE_SERVICE_ROLE_KEY"
   | "SUPABASE_RESUME_BUCKET"
   | "RESEND_API_KEY"
-  | "RESEND_FROM_EMAIL";
+  | "RESEND_FROM_EMAIL"
+  | "OFFER_ALERT_EMAIL";
 
 export function getRequiredEnv(key: EnvKey) {
   const value = process.env[key];

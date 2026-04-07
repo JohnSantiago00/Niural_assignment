@@ -21,6 +21,7 @@ import type {
   CandidateRecord,
   InterviewFeedbackRecord,
   InterviewTranscriptRecord,
+  OfferRecord,
   ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
@@ -174,7 +175,8 @@ export async function getCandidateDetail(
     researchProfileResult,
     schedulingDetailResult,
     interviewTranscriptResult,
-    interviewFeedbackResult
+    interviewFeedbackResult,
+    offerResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -207,7 +209,12 @@ export async function getCandidateDetail(
       .from("interview_feedback")
       .select("*")
       .eq("candidate_id", candidate.id)
-      .maybeSingle<InterviewFeedbackRecord>()
+      .maybeSingle<InterviewFeedbackRecord>(),
+    supabase
+      .from("offers")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<OfferRecord>()
   ]);
 
   if (applicationError) {
@@ -231,6 +238,8 @@ export async function getCandidateDetail(
   const interviewTranscript = interviewTranscriptResult.data ?? null;
   const interviewFeedbackError = interviewFeedbackResult.error;
   const interviewFeedback = interviewFeedbackResult.data ?? null;
+  const offerError = offerResult.error;
+  const offer = offerResult.data ?? null;
 
   if (screeningError) {
     console.error("Failed to load candidate screening result", screeningError);
@@ -246,6 +255,10 @@ export async function getCandidateDetail(
 
   if (interviewFeedbackError) {
     console.error("Failed to load candidate interview feedback", interviewFeedbackError);
+  }
+
+  if (offerError) {
+    console.error("Failed to load candidate offer", offerError);
   }
 
   if (!application || !role) {
@@ -264,6 +277,7 @@ export async function getCandidateDetail(
     calendarHolds: schedulingDetail.calendarHolds,
     interviewTranscript: interviewTranscript ?? null,
     interviewFeedback: interviewFeedback ?? null,
+    offer: offer ?? null,
     screeningResult: screeningResult ?? null,
     researchProfile: researchProfile ?? null
   };

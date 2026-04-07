@@ -9,6 +9,7 @@ import type {
   InterviewFeedbackRecord,
   InterviewRecord,
   InterviewTranscriptRecord,
+  OfferRecord,
   ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
@@ -43,6 +44,7 @@ export type CandidateDetailView = {
   calendarHolds: CalendarHoldRecord[];
   interviewTranscript: InterviewTranscriptRecord | null;
   interviewFeedback: InterviewFeedbackRecord | null;
+  offer: OfferRecord | null;
   screeningResult: ScreeningResultRecord | null;
   researchProfile: ResearchProfileRecord | null;
 };
