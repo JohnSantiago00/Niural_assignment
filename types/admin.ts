@@ -4,7 +4,9 @@
 import type {
   ApplicationRecord,
   AuditLogRecord,
+  CalendarHoldRecord,
   CandidateRecord,
+  InterviewRecord,
   ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
@@ -35,6 +37,8 @@ export type CandidateDetailView = {
   application: ApplicationRecord;
   role: RoleRecord;
   auditLogs: AuditLogRecord[];
+  interview: InterviewRecord | null;
+  calendarHolds: CalendarHoldRecord[];
   screeningResult: ScreeningResultRecord | null;
   researchProfile: ResearchProfileRecord | null;
 };

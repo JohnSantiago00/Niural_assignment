@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
+import { hardDeleteCandidateAction } from "@/lib/admin/actions";
 import { getCandidateDetail } from "@/lib/admin/queries";
 import { requireAdminUser } from "@/lib/auth/authorization";
 import {
@@ -16,10 +17,22 @@ import {
 import { runCandidateEnrichmentAction } from "@/lib/enrichment/actions";
 import { isCandidateEligibleForEnrichment } from "@/lib/enrichment/run-enrichment";
 import {
+  approveRescheduleSlotsAction,
+  offerInterviewSlotsAction,
+  regenerateRescheduleSuggestionsAction
+} from "@/lib/scheduling/actions";
+import {
+  getHoldStatusClasses,
+  getHoldStatusLabel,
+  getInterviewStatusClasses,
+  getInterviewStatusLabel
+} from "@/lib/scheduling/status";
+import {
   getCandidateStatusLabel,
   type CandidateWorkflowStatus
 } from "@/lib/utils/candidate-status";
 import type {
+  CalendarHoldRecord,
   EducationEntry,
   PastEmployerEntry,
   ResearchProfileRecord
@@ -34,6 +47,13 @@ type CandidateDetailPageProps = {
     screeningError?: string;
     enrichment?: string;
     enrichmentError?: string;
+    scheduling?: string;
+    schedulingError?: string;
+    selectionToken?: string;
+    offerEmail?: string;
+    offerEmailError?: string;
+    rescheduleSlots?: string;
+    deleteError?: string;
     override?: string;
     overrideError?: string;
   }>;
@@ -48,6 +68,22 @@ function formatDateTime(value: string) {
 
 function formatAiScore(value: number | null) {
   return value === null ? "Not scored yet" : value.toFixed(1);
+}
+
+function formatScheduleWindow(start: string, end: string) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const day = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium"
+  }).format(startDate);
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeStyle: "short"
+  }).format(startDate);
+  const endTime = new Intl.DateTimeFormat("en-US", {
+    timeStyle: "short"
+  }).format(endDate);
+
+  return `${day} · ${time} to ${endTime}`;
 }
 
 function getConfidenceLabel(value: number) {
@@ -187,6 +223,14 @@ function OptionalLink({
   );
 }
 
+function getPrimarySelectionToken(holds: CalendarHoldRecord[]) {
+  const candidateHold =
+    holds.find((hold) => hold.hold_status === "held") ??
+    holds.find((hold) => hold.hold_status === "confirmed");
+
+  return candidateHold?.selection_token ?? null;
+}
+
 export const revalidate = 0;
 
 export default async function CandidateDetailPage({
@@ -204,6 +248,17 @@ export default async function CandidateDetailPage({
 
   const status = detail.candidate.current_status as CandidateWorkflowStatus;
   const canRunEnrichment = isCandidateEligibleForEnrichment(detail.candidate);
+  const activeHolds = detail.calendarHolds.filter((hold) => hold.hold_status === "held");
+  const confirmedHold =
+    detail.calendarHolds.find((hold) => hold.hold_status === "confirmed") ?? null;
+  const expiredHoldCount = detail.calendarHolds.filter((hold) => hold.hold_status === "expired").length;
+  const selectionToken = getPrimarySelectionToken(detail.calendarHolds);
+  const selectionLink = selectionToken ? `/interview/${selectionToken}` : null;
+  const isRescheduleRequested = detail.interview?.interview_status === "reschedule_requested";
+  const canOfferSlots =
+    status === "shortlisted" ||
+    status === "interview_pending" ||
+    isRescheduleRequested;
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-14">
@@ -233,6 +288,54 @@ export default async function CandidateDetailPage({
         {resolvedSearchParams.enrichmentError ? (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {resolvedSearchParams.enrichmentError}
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.scheduling === "offered" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Interview options were generated and reserved successfully.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.scheduling === "reschedule_regenerated" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Replacement interview suggestions were regenerated for admin review.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.scheduling === "reschedule_sent" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Replacement interview options were approved and sent to the candidate.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.offerEmail === "sent" ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Scheduling link email was sent to the candidate successfully.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.offerEmail === "skipped" ? (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Scheduling holds were created, but the offer email was skipped because Resend is not configured.
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.offerEmail === "failed" ? (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Scheduling holds were created, but the offer email failed. {resolvedSearchParams.offerEmailError ?? ""}
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.schedulingError ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {resolvedSearchParams.schedulingError}
+          </div>
+        ) : null}
+
+        {resolvedSearchParams.deleteError ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {resolvedSearchParams.deleteError}
           </div>
         ) : null}
 
@@ -319,6 +422,322 @@ export default async function CandidateDetailPage({
                   {detail.application.submission_status}
                 </p>
               </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Interview scheduling</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Scheduling uses database-backed holds so offered slots stay reserved until they are selected, released, or expired.
+                </p>
+              </div>
+              {canOfferSlots ? (
+                <form action={offerInterviewSlotsAction.bind(null, detail.candidate.id)}>
+                  <button
+                    type="submit"
+                    className="inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accentDark"
+                  >
+                    {activeHolds.length > 0 || expiredHoldCount > 0
+                      ? "Regenerate interview slots"
+                      : "Offer interview slots"}
+                  </button>
+                </form>
+              ) : null}
+            </div>
+
+            <div className="mt-4 rounded-3xl border border-line bg-white p-5">
+              {detail.interview ? (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Interview status
+                      </p>
+                      <div className="mt-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] ${getInterviewStatusClasses(detail.interview.interview_status)}`}
+                        >
+                          {getInterviewStatusLabel(detail.interview.interview_status)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Confirmed slot
+                      </p>
+                      <p className="mt-2 text-sm text-slate-800">
+                        {confirmedHold
+                          ? formatScheduleWindow(confirmedHold.slot_start, confirmedHold.slot_end)
+                          : "Not confirmed yet"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Active holds
+                      </p>
+                      <p className="mt-2 text-sm text-slate-800">{activeHolds.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Calendar event
+                      </p>
+                      <p className="mt-2 break-all text-sm text-slate-800">
+                        {detail.interview.calendar_event_id ?? "Not created yet"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Expired holds
+                      </p>
+                      <p className="mt-2 text-sm text-slate-800">{expiredHoldCount}</p>
+                    </div>
+                    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Meeting link
+                      </p>
+                      {detail.interview.meeting_link ? (
+                        <a
+                          href={detail.interview.meeting_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-block break-all text-sm font-medium text-accent hover:text-accentDark"
+                        >
+                          Open Google Meet
+                        </a>
+                      ) : (
+                        <p className="mt-2 text-sm text-slate-800">Not available yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectionLink ? (
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Candidate scheduling link
+                      </p>
+                      <Link
+                        href={selectionLink}
+                        className="mt-2 inline-block break-all text-sm font-medium text-accent hover:text-accentDark"
+                      >
+                        {selectionLink}
+                      </Link>
+                    </div>
+                  ) : null}
+
+                  {detail.calendarHolds.length > 0 ? (
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Reserved slot history
+                      </p>
+                      <div className="mt-4 space-y-3">
+                        {detail.calendarHolds.map((hold) => (
+                          <div
+                            key={hold.id}
+                            className="rounded-2xl border border-line bg-white px-4 py-3"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ${getHoldStatusClasses(hold.hold_status)}`}
+                              >
+                                {getHoldStatusLabel(hold.hold_status)}
+                              </span>
+                              <span className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                                {hold.interviewer_name}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {formatScheduleWindow(hold.slot_start, hold.slot_end)}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-slate-500">
+                              Expires {formatDateTime(hold.expires_at)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      No interview options have been offered yet.
+                    </p>
+                  )}
+
+                  {detail.interview.calendar_warning ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-amber-700">
+                        Calendar follow-up needed
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-amber-800">
+                        {detail.interview.calendar_warning}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {detail.interview.scheduling_note ? (
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                        Latest scheduling note
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {detail.interview.scheduling_note}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {isRescheduleRequested ? (
+                    <div className="rounded-2xl border border-line bg-panel px-5 py-4">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                            Reschedule request
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-slate-700">
+                            The candidate asked for a new set of interview times. Admin can regenerate candidate-safe replacements, review them, and then send the refreshed scheduling link.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          <form action={regenerateRescheduleSuggestionsAction.bind(null, detail.candidate.id)}>
+                            <button
+                              type="submit"
+                              className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900"
+                            >
+                              Regenerate suggestions
+                            </button>
+                          </form>
+                          <form action={approveRescheduleSlotsAction.bind(null, detail.candidate.id)}>
+                            <button
+                              type="submit"
+                              className="inline-flex rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accentDark"
+                            >
+                              Approve and send new slots
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div className="rounded-2xl border border-line bg-white px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                            Candidate note
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-slate-700">
+                            {detail.interview.scheduling_note ?? "No note provided"}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-line bg-white px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                            AI preference summary
+                          </p>
+                          {detail.interview.reschedule_preferences ? (
+                            <div className="mt-2 space-y-2 text-sm text-slate-700">
+                              <p>{detail.interview.reschedule_preferences.notes_summary}</p>
+                              <p>
+                                Preferred time of day:{" "}
+                                {detail.interview.reschedule_preferences.preferred_time_of_day ?? "Not specified"}
+                              </p>
+                              <p>
+                                Preferred days:{" "}
+                                {detail.interview.reschedule_preferences.preferred_days.join(", ") || "Not specified"}
+                              </p>
+                              <p>
+                                Avoid days:{" "}
+                                {detail.interview.reschedule_preferences.avoid_days.join(", ") || "Not specified"}
+                              </p>
+                              <p>
+                                Avoid times:{" "}
+                                {detail.interview.reschedule_preferences.avoid_time_ranges.join(", ") || "Not specified"}
+                              </p>
+                              <p>
+                                Earliest date:{" "}
+                                {detail.interview.reschedule_preferences.earliest_date ?? "Not specified"}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-sm text-slate-500">
+                              AI could not confidently extract structured timing preferences, so admins should use the original note directly.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-2xl border border-line bg-white px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                          Proposed replacement slots
+                        </p>
+                        {activeHolds.length > 0 ? (
+                          <div className="mt-4 space-y-3">
+                            {activeHolds.map((hold) => (
+                              <div
+                                key={hold.id}
+                                className="rounded-2xl border border-line bg-panel px-4 py-3"
+                              >
+                                <p className="text-sm font-medium text-slate-900">
+                                  {formatScheduleWindow(hold.slot_start, hold.slot_end)}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600">
+                                  {hold.interviewer_name} · {hold.interviewer_email}
+                                </p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.12em] text-slate-500">
+                                  Reserved until {formatDateTime(hold.expires_at)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-sm text-slate-500">
+                            No replacement slots have been generated yet. Regenerate suggestions to prepare a fresh held set before sending.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {expiredHoldCount > 0 && activeHolds.length === 0 && !confirmedHold ? (
+                    <p className="text-sm text-slate-500">
+                      The previous interview options expired without a confirmed selection. You can regenerate a fresh set of holds and follow up manually.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Scheduling starts once a shortlisted candidate is ready for interview options.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-rose-900">Danger zone</h2>
+            <div className="mt-4 rounded-3xl border border-rose-200 bg-rose-50 p-5">
+              <p className="text-sm leading-6 text-rose-900">
+                This prototype-only QA utility permanently deletes this candidate, the
+                application row that powers duplicate protection, downstream screening,
+                enrichment, scheduling records, audit history, and the uploaded resume file.
+              </p>
+              <form
+                action={hardDeleteCandidateAction.bind(null, detail.candidate.id)}
+                className="mt-5 flex flex-col gap-3 md:flex-row md:items-end"
+              >
+                <label className="flex-1">
+                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-rose-700">
+                    Type DELETE to confirm
+                  </span>
+                  <input
+                    name="confirmation"
+                    className="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-rose-900 outline-none focus:border-rose-400"
+                    placeholder="DELETE"
+                    autoComplete="off"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="inline-flex rounded-full bg-rose-600 px-5 py-3 text-sm font-medium text-white hover:bg-rose-700"
+                >
+                  Delete test candidate
+                </button>
+              </form>
             </div>
           </section>
 

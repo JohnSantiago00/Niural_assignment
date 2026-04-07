@@ -10,6 +10,51 @@ export type PastEmployerEntry = {
   title: string | null;
   duration: string | null;
 };
+export type InterviewStatus =
+  | "pending"
+  | "options_sent"
+  | "scheduled"
+  | "reschedule_requested"
+  | "completed"
+  | "cancelled";
+export type HoldStatus = "held" | "confirmed" | "released" | "expired";
+export type ReschedulePreferences = {
+  preferred_time_of_day: "morning" | "afternoon" | "evening" | null;
+  preferred_days: string[];
+  avoid_days: string[];
+  avoid_time_ranges: string[];
+  earliest_date: string | null;
+  notes_summary: string;
+};
+export type InterviewRecord = {
+  id: string;
+  candidate_id: string;
+  interviewer_name: string | null;
+  interviewer_email: string | null;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  meeting_link: string | null;
+  calendar_event_id: string | null;
+  calendar_warning: string | null;
+  interview_status: InterviewStatus;
+  scheduling_note: string | null;
+  reschedule_preferences: ReschedulePreferences | null;
+  created_at: string;
+  updated_at: string;
+};
+export type CalendarHoldRecord = {
+  id: string;
+  candidate_id: string;
+  interview_id: string;
+  interviewer_name: string;
+  interviewer_email: string;
+  slot_start: string;
+  slot_end: string;
+  hold_status: HoldStatus;
+  expires_at: string;
+  selection_token: string;
+  created_at: string;
+};
 export type ResearchProfileRecord = {
   id: string;
   candidate_id: string;
@@ -205,6 +250,45 @@ export type Database = {
         Update: Partial<AdminUserRecord>;
         Relationships: [];
       };
+      interviews: {
+        Row: InterviewRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interviewer_name?: string | null;
+          interviewer_email?: string | null;
+          scheduled_start?: string | null;
+          scheduled_end?: string | null;
+          meeting_link?: string | null;
+          calendar_event_id?: string | null;
+          calendar_warning?: string | null;
+          interview_status?: InterviewStatus;
+          scheduling_note?: string | null;
+          reschedule_preferences?: ReschedulePreferences | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<InterviewRecord>;
+        Relationships: [];
+      };
+      calendar_holds: {
+        Row: CalendarHoldRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interview_id: string;
+          interviewer_name: string;
+          interviewer_email: string;
+          slot_start: string;
+          slot_end: string;
+          hold_status?: HoldStatus;
+          expires_at: string;
+          selection_token: string;
+          created_at?: string;
+        };
+        Update: Partial<CalendarHoldRecord>;
+        Relationships: [];
+      };
       screening_results: {
         Row: ScreeningResultRecord;
         Insert: {
@@ -255,7 +339,19 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      expire_calendar_holds: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      confirm_calendar_hold: {
+        Args: {
+          p_selection_token: string;
+          p_hold_id: string;
+        };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

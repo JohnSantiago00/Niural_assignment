@@ -8,6 +8,7 @@ The app currently covers:
 - Phase 02A: protected admin dashboard and candidate lifecycle review
 - Phase 02B: AI resume screening against the applied role
 - Phase 02C: shortlist-only candidate research and profile enrichment
+- Phase 03: deterministic interview scheduling with DB-backed slot holds, Google Calendar free/busy, confirmed event creation, and an admin-approved reschedule loop
 
 The product is intentionally designed to be:
 
@@ -26,12 +27,13 @@ Implemented today:
 - protected admin dashboard with filters and candidate detail page
 - manual AI screening with persisted `screening_results`
 - manual profile enrichment for shortlisted candidates with persisted `research_profiles`
+- interview slot offering with DB-backed holds, Google Calendar-backed availability, and a public tokenized selection page
 - admin override support for shortlist decisions
+- admin-only QA hard delete for fully resetting test candidates and their application records
 - Supabase Auth login plus `admin_users` allowlist
 
 Not implemented yet:
 
-- scheduling
 - transcripts / interview notes
 - offers / e-signature
 - Slack onboarding
@@ -45,7 +47,7 @@ Not implemented yet:
 - Supabase Postgres + Storage + Auth
 - Google Gemini Developer API via `@google/genai`
 - Zod for validation
-- Resend for confirmation email
+- Resend for scheduling-link and confirmation emails
 
 ## Why This Stack
 
@@ -83,6 +85,9 @@ Real:
 - resume upload and persistence
 - screening and enrichment model calls
 - server-side source fetching for submitted profile URLs
+- Google Calendar free/busy lookup for scheduling
+- Google Calendar event creation for confirmed interviews
+- Resend scheduling-link delivery plus human-readable confirmation emails
 
 MVP / intentionally limited:
 
@@ -90,6 +95,8 @@ MVP / intentionally limited:
 - LinkedIn may block direct automated access; when that happens, the app records the limitation clearly and preserves the submitted URL for manual review
 - X/Twitter is modeled as optional future work
 - enrichment is manual, not queued
+- scheduling uses one configured Google Calendar instead of a full multi-user calendar linking flow
+- hard delete is present only as an admin QA reset utility, not as a normal end-user product feature
 - PDF parsing uses a pragmatic Node-friendly parser and may be imperfect on layout-heavy files
 
 ## Environment Variables
@@ -101,6 +108,13 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
+GOOGLE_CLIENT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+GOOGLE_CALENDAR_ID=
+GOOGLE_CALENDAR_INTERVIEWER_NAME=Hiring Team
+GOOGLE_CALENDAR_INTERVIEWER_EMAIL=
+GOOGLE_IMPERSONATED_USER_EMAIL=
+GOOGLE_TIMEZONE=America/New_York
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_RESUME_BUCKET=candidate-resumes
 RESEND_API_KEY=
@@ -111,6 +125,10 @@ Notes:
 
 - `GEMINI_API_KEY` is used only on the server for screening and enrichment.
 - `GEMINI_MODEL` keeps the MVP on one model unless you deliberately change it.
+- `GOOGLE_CLIENT_EMAIL` and `GOOGLE_PRIVATE_KEY` authenticate the server to Google Calendar.
+- `GOOGLE_CALENDAR_ID` points at the calendar used for free/busy checks and confirmed interview event creation.
+- `GOOGLE_IMPERSONATED_USER_EMAIL` is optional for domain-wide delegation setups.
+- `GOOGLE_CALENDAR_INTERVIEWER_NAME`, `GOOGLE_CALENDAR_INTERVIEWER_EMAIL`, and `GOOGLE_TIMEZONE` shape the interviewer/event metadata shown in the app.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and powers protected writes plus private storage access.
 - Resend is optional for the candidate confirmation email path.
 
@@ -131,16 +149,21 @@ npm install
 - [0005_screening_results_structured_fields.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0005_screening_results_structured_fields.sql)
 - [0006_research_profiles.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0006_research_profiles.sql)
 - [0007_research_profiles_quality.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0007_research_profiles_quality.sql)
+- [0008_research_profiles_linkedin_source_metadata.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0008_research_profiles_linkedin_source_metadata.sql)
+- [0009_phase_03_scheduling.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0009_phase_03_scheduling.sql)
+- [0010_phase_03_reschedule_hardening.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0010_phase_03_reschedule_hardening.sql)
 
 3. Create at least one Supabase Auth user and add that email to `public.admin_users`
 
-4. Start the app
+4. Share the configured Google Calendar with the service account or configure domain-wide delegation if you use impersonation
+
+5. Start the app
 
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000/careers](http://localhost:3000/careers)
+6. Open [http://localhost:3000/careers](http://localhost:3000/careers)
 
 ## Current Flow
 
@@ -160,7 +183,10 @@ Admin side:
 4. run AI screening
 5. shortlist or override if needed
 6. run profile enrichment only for shortlisted candidates
-7. review brief, discrepancy flags, and source summaries
+7. offer interview slots from real Google Calendar availability and review hold / scheduling state
+8. handle candidate reschedule requests through an admin approval loop with AI-extracted preference hints
+9. review brief, discrepancy flags, and source summaries
+10. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application
 
 ## Key Tradeoffs / Assumptions
 
@@ -168,6 +194,9 @@ Admin side:
 - Workflow state stays deterministic in app logic even when Gemini is generating structured output.
 - Enrichment is intentionally lightweight and conservative. Missing or blocked sources are treated as limitations, not evidence.
 - The system stores screening and enrichment separately so those layers can evolve independently.
+- Scheduling still relies on DB-backed holds even with Google Calendar because free/busy alone does not reserve tentative options during candidate selection.
+- Google Calendar and Resend are best-effort external side effects layered on top of DB truth; failed invite/email delivery does not roll back a valid in-app scheduling state.
+- The admin-only hard delete removes the application row as well as candidate-linked artifacts because duplicate protection is enforced on `applications(role_id, email)`.
 - The admin tool is protected, but this is still a prototype and not a production-grade enterprise auth system.
 
 ## Useful Docs
@@ -178,12 +207,12 @@ Admin side:
 - [Phase B Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-b-notes.md)
 - [Phase C Screening Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-screening-notes.md)
 - [Phase C Enrichment Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-c-enrichment-notes.md)
+- [Phase 03 Scheduling Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-03-scheduling-notes.md)
 
 ## Next Steps
 
 The next major phase would add later-stage hiring workflow features such as:
 
-- scheduling
 - interview support
 - transcripts / notes
 - offers / signing

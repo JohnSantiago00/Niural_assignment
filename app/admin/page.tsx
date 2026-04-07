@@ -19,6 +19,7 @@ type AdminPageProps = {
     from?: string;
     to?: string;
     sort?: string;
+    deleted?: string;
   }>;
 };
 
@@ -50,6 +51,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </div>
 
       <div className="mt-10">
+        {resolvedSearchParams.deleted ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Candidate test data was hard deleted successfully. The same email can now reapply for the same role.
+          </div>
+        ) : null}
         <AdminFilterBar roles={roles} filters={filters} />
       </div>
 
