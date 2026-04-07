@@ -534,7 +534,7 @@ export async function createConfirmedCalendarEvent(candidateId: string, intervie
     await writeAuditLog(
       candidate.id,
       "interview_calendar_event_warning",
-      `Interview slot was confirmed in-app, but Google Calendar follow-up needs attention. ${warning.adminMessage}`,
+      `Interview slot was confirmed, but calendar delivery needs manual follow-up. ${warning.adminMessage}`,
       "system"
     );
 

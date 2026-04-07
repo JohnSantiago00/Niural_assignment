@@ -2,7 +2,7 @@
 
 ## What AI is used for
 
-Gemini is used for two focused tasks:
+Gemini is used for five focused tasks:
 
 1. Resume screening
    - compare resume text against the applied role
@@ -15,42 +15,64 @@ Gemini is used for two focused tasks:
    - flag conservative discrepancies
    - estimate enrichment confidence
 
+3. Interview summary
+   - summarize transcript text into a structured post-interview artifact
+   - identify observed strengths, concerns, topics, and follow-up prompts
+
+4. Offer drafting
+   - draft a plain-English offer letter from explicit hiring-manager inputs
+   - use candidate/role/interview context as supporting context only
+
+5. Slack welcome copy
+   - draft a concise onboarding welcome message from candidate, role, start date, manager, and configured resources
+   - app logic still controls Slack lookup, invite state, and message delivery
+
 ## What AI is not used for
 
 AI is not used to:
 
 - decide who can access the admin area
 - determine whether enrichment is allowed
+- choose final interview slots
 - directly update workflow state on its own
 - browse the public web freely outside the source content the app provides
+- mark offers as sent or signed
+- decide whether a candidate joined Slack or should be marked onboarded
 
-## Screening vs enrichment separation
+## Separation of concerns
 
-Screening and enrichment are intentionally separate.
+Each AI workflow has its own helper and persistence layer:
 
-- screening uses resume + role JD
-- enrichment uses shortlisted candidates + submitted profile sources
+- screening writes to `screening_results`
+- enrichment writes to `research_profiles`
+- interview summary writes to `interview_transcripts`
+- offer drafting writes plain letter text to `offers`
+- Slack welcome generation only produces message copy after app-controlled join detection
 
-This keeps the reasoning chain cleaner and makes the system easier to explain.
+This keeps the system easier to reason about and prevents a model response from
+controlling the candidate lifecycle.
 
 ## Anti-hallucination controls
 
 The prompts explicitly instruct Gemini to:
 
-- use only provided resume, role, screening, and source content
-- avoid inventing missing profile details
+- use only provided resume, role, screening, interview, and source content
+- avoid inventing missing profile details or offer terms
 - treat blocked or missing sources as limitations, not evidence
 - keep discrepancy flags conservative
+- return offer letters as normal prose, not JSON or placeholder fields
 
 ## Structured output validation
 
-Gemini returns JSON-shaped output, but the app still validates everything with Zod before any database write.
+Gemini returns JSON-shaped output for screening, enrichment, interview summaries,
+and the offer-letter envelope. The app validates those outputs with Zod before
+database writes. The offer-letter helper also sanitizes common JSON/code-fence
+artifacts before storing candidate-facing text.
 
-That means:
-
-- malformed output is rejected
-- workflow state is protected from invalid model responses
-- the stored AI artifacts have predictable structure
+For demo continuity, the interview-summary and offer-letter flows have
+deterministic fallbacks for temporary Gemini quota/high-demand errors. Those
+fallbacks are built only from app data and are marked as deterministic fallback
+artifacts; they do not let AI or a provider failure control workflow state.
 
 ## Why workflow state remains deterministic
 
@@ -59,9 +81,11 @@ Application logic still controls:
 - shortlist threshold behavior
 - admin override behavior
 - enrichment eligibility
+- scheduling hold creation and confirmation
+- interview completion
+- offer send/sign transitions
+- Slack onboarding state transitions
 - admin access and route protection
-
-This keeps human control and business rules outside the model.
 
 ## Why Gemini was chosen for this version
 

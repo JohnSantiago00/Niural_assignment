@@ -55,6 +55,103 @@ export type CalendarHoldRecord = {
   selection_token: string;
   created_at: string;
 };
+export type TranscriptSource =
+  | "simulated"
+  | "fireflies_mock"
+  | "fireflies_real_ready";
+export type InterviewTranscriptRecord = {
+  id: string;
+  candidate_id: string;
+  interview_id: string;
+  transcript_text: string;
+  transcript_source: TranscriptSource;
+  overall_assessment: string;
+  strengths_observed: string[];
+  concerns_observed: string[];
+  key_topics_discussed: string[];
+  recommended_follow_up: string[];
+  concise_summary: string;
+  model_name: string;
+  completed_at: string;
+  created_at: string;
+  updated_at: string;
+};
+export type InterviewFeedbackRecord = {
+  id: string;
+  candidate_id: string;
+  interview_id: string;
+  rating: number;
+  comments: string;
+  actor: string;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+};
+export type OfferStatus = "drafting" | "ready" | "sent" | "signed" | "cancelled";
+export type OfferRecord = {
+  id: string;
+  candidate_id: string;
+  application_id: string;
+  offer_status: OfferStatus;
+  confirmed_job_title: string;
+  start_date: string;
+  base_salary: string;
+  compensation_structure: string;
+  equity_or_bonus: string | null;
+  reporting_manager: string;
+  custom_terms: string | null;
+  generated_letter: string;
+  generated_model_name: string;
+  signing_token: string;
+  signing_token_expires_at: string | null;
+  offer_email_status: "sent" | "failed" | "skipped" | null;
+  offer_email_error: string | null;
+  offer_email_recipient: string | null;
+  sent_at: string | null;
+  signed_at: string | null;
+  signer_ip: string | null;
+  signer_name: string | null;
+  signature_image_data: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type SlackOnboardingStatus =
+  | "not_started"
+  | "invite_pending"
+  | "invite_sent"
+  | "invite_failed"
+  | "joined"
+  | "welcome_sent"
+  | "completed"
+  | "needs_manual_follow_up";
+export type SlackInviteStatus =
+  | "not_attempted"
+  | "sent"
+  | "invite_email_sent"
+  | "failed"
+  | "skipped"
+  | "already_joined";
+export type SlackMessageStatus = "not_sent" | "sent" | "failed";
+export type SlackOnboardingRecord = {
+  id: string;
+  candidate_id: string;
+  offer_id: string;
+  onboarding_status: SlackOnboardingStatus;
+  slack_invite_email: string;
+  slack_user_id: string | null;
+  invite_attempted_at: string | null;
+  invite_status: SlackInviteStatus;
+  invite_error: string | null;
+  joined_at: string | null;
+  welcome_sent_at: string | null;
+  welcome_status: SlackMessageStatus;
+  welcome_error: string | null;
+  hr_notified_at: string | null;
+  hr_notification_status: SlackMessageStatus;
+  hr_notification_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type ResearchProfileRecord = {
   id: string;
   candidate_id: string;
@@ -287,6 +384,101 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<CalendarHoldRecord>;
+        Relationships: [];
+      };
+      interview_transcripts: {
+        Row: InterviewTranscriptRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interview_id: string;
+          transcript_text: string;
+          transcript_source?: TranscriptSource;
+          overall_assessment: string;
+          strengths_observed?: string[];
+          concerns_observed?: string[];
+          key_topics_discussed?: string[];
+          recommended_follow_up?: string[];
+          concise_summary: string;
+          model_name: string;
+          completed_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<InterviewTranscriptRecord>;
+        Relationships: [];
+      };
+      interview_feedback: {
+        Row: InterviewFeedbackRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          interview_id: string;
+          rating: number;
+          comments: string;
+          actor?: string;
+          submitted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<InterviewFeedbackRecord>;
+        Relationships: [];
+      };
+      offers: {
+        Row: OfferRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          application_id: string;
+          offer_status?: OfferStatus;
+          confirmed_job_title: string;
+          start_date: string;
+          base_salary: string;
+          compensation_structure: string;
+          equity_or_bonus?: string | null;
+          reporting_manager: string;
+          custom_terms?: string | null;
+          generated_letter: string;
+          generated_model_name: string;
+          signing_token: string;
+          signing_token_expires_at?: string | null;
+          offer_email_status?: OfferRecord["offer_email_status"];
+          offer_email_error?: string | null;
+          offer_email_recipient?: string | null;
+          sent_at?: string | null;
+          signed_at?: string | null;
+          signer_ip?: string | null;
+          signer_name?: string | null;
+          signature_image_data?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<OfferRecord>;
+        Relationships: [];
+      };
+      slack_onboarding: {
+        Row: SlackOnboardingRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          offer_id: string;
+          onboarding_status?: SlackOnboardingStatus;
+          slack_invite_email: string;
+          slack_user_id?: string | null;
+          invite_attempted_at?: string | null;
+          invite_status?: SlackInviteStatus;
+          invite_error?: string | null;
+          joined_at?: string | null;
+          welcome_sent_at?: string | null;
+          welcome_status?: SlackMessageStatus;
+          welcome_error?: string | null;
+          hr_notified_at?: string | null;
+          hr_notification_status?: SlackMessageStatus;
+          hr_notification_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<SlackOnboardingRecord>;
         Relationships: [];
       };
       screening_results: {

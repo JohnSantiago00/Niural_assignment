@@ -30,17 +30,16 @@
 
 ## Known limitations
 
-- There is no authenticated admin review interface yet.
 - Email content is plain text and intentionally minimal for Phase A.
 - Audit log insertion is best-effort; failures are logged rather than surfaced to the candidate.
 - Duplicate protection is scoped to role + email, not to broader identity matching.
 
-## What should be built next
+## What later phases build next
 
 - Admin review UI for applications and candidates
 - richer status transitions and review actions
-- background jobs or queues if email and downstream operations become more complex
-- later-phase AI scoring and screening features
+- AI scoring and enrichment
+- scheduling, interviews, offer signing, and onboarding handoff
 
 ## How to explain this in an interview
 

@@ -113,7 +113,7 @@ export async function runCandidateEnrichment(candidateId: string) {
       portfolio_summary:
         sources.portfolio.status === "missing" ? "Portfolio URL was not provided." : enrichment.portfolio_summary,
       x_summary:
-        sources.x.status === "missing" ? "X/Twitter enrichment was not run in this MVP." : enrichment.x_summary,
+        sources.x.status === "missing" ? "X/Twitter was not connected for this enrichment run." : enrichment.x_summary,
       discrepancy_flags: enrichment.discrepancy_flags,
       confidence_score: enrichment.confidence_score,
       candidate_brief: enrichment.candidate_brief,

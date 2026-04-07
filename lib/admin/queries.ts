@@ -19,9 +19,13 @@ import type {
 import type {
   ApplicationRecord,
   CandidateRecord,
+  InterviewFeedbackRecord,
+  InterviewTranscriptRecord,
+  OfferRecord,
   ResearchProfileRecord,
   RoleRecord,
-  ScreeningResultRecord
+  ScreeningResultRecord,
+  SlackOnboardingRecord
 } from "@/types/database";
 
 function normalizeStatus(value: string): CandidateWorkflowStatus {
@@ -170,7 +174,11 @@ export async function getCandidateDetail(
     { data: auditLogs, error: auditError },
     screeningResultResult,
     researchProfileResult,
-    schedulingDetailResult
+    schedulingDetailResult,
+    interviewTranscriptResult,
+    interviewFeedbackResult,
+    offerResult,
+    slackOnboardingResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -193,7 +201,27 @@ export async function getCandidateDetail(
       .select("*")
       .eq("candidate_id", candidate.id)
       .maybeSingle<ResearchProfileRecord>(),
-    getCandidateSchedulingDetail(candidate.id)
+    getCandidateSchedulingDetail(candidate.id),
+    supabase
+      .from("interview_transcripts")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<InterviewTranscriptRecord>(),
+    supabase
+      .from("interview_feedback")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<InterviewFeedbackRecord>(),
+    supabase
+      .from("offers")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<OfferRecord>(),
+    supabase
+      .from("slack_onboarding")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<SlackOnboardingRecord>()
   ]);
 
   if (applicationError) {
@@ -213,6 +241,14 @@ export async function getCandidateDetail(
   const researchProfileError = researchProfileResult.error;
   const researchProfile = researchProfileResult.data ?? null;
   const schedulingDetail = schedulingDetailResult;
+  const interviewTranscriptError = interviewTranscriptResult.error;
+  const interviewTranscript = interviewTranscriptResult.data ?? null;
+  const interviewFeedbackError = interviewFeedbackResult.error;
+  const interviewFeedback = interviewFeedbackResult.data ?? null;
+  const offerError = offerResult.error;
+  const offer = offerResult.data ?? null;
+  const slackOnboardingError = slackOnboardingResult.error;
+  const slackOnboarding = slackOnboardingResult.data ?? null;
 
   if (screeningError) {
     console.error("Failed to load candidate screening result", screeningError);
@@ -220,6 +256,22 @@ export async function getCandidateDetail(
 
   if (researchProfileError) {
     console.error("Failed to load candidate research profile", researchProfileError);
+  }
+
+  if (interviewTranscriptError) {
+    console.error("Failed to load candidate interview transcript", interviewTranscriptError);
+  }
+
+  if (interviewFeedbackError) {
+    console.error("Failed to load candidate interview feedback", interviewFeedbackError);
+  }
+
+  if (offerError) {
+    console.error("Failed to load candidate offer", offerError);
+  }
+
+  if (slackOnboardingError) {
+    console.error("Failed to load candidate Slack onboarding state", slackOnboardingError);
   }
 
   if (!application || !role) {
@@ -236,6 +288,10 @@ export async function getCandidateDetail(
     auditLogs: auditLogs ?? [],
     interview: schedulingDetail.interview,
     calendarHolds: schedulingDetail.calendarHolds,
+    interviewTranscript: interviewTranscript ?? null,
+    interviewFeedback: interviewFeedback ?? null,
+    offer: offer ?? null,
+    slackOnboarding: slackOnboarding ?? null,
     screeningResult: screeningResult ?? null,
     researchProfile: researchProfile ?? null
   };

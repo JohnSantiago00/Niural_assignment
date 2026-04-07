@@ -57,7 +57,7 @@ The `/admin/candidates/[candidateId]` page:
 
 ## Why explicit statuses matter now
 
-Phase B introduces explicit lifecycle rendering around `current_status`, even though later phases are not implemented yet.
+Phase B introduced explicit lifecycle rendering around `current_status` before the later workflow phases were added.
 
 This matters because:
 
