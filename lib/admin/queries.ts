@@ -4,6 +4,7 @@
  * explicit view models for the UI.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { getCandidateSchedulingDetail } from "@/lib/scheduling/queries";
 import { isUuid } from "@/lib/utils/uuid";
 import {
   candidateWorkflowStatuses,
@@ -168,7 +169,8 @@ export async function getCandidateDetail(
     { data: role, error: roleError },
     { data: auditLogs, error: auditError },
     screeningResultResult,
-    researchProfileResult
+    researchProfileResult,
+    schedulingDetailResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -190,7 +192,8 @@ export async function getCandidateDetail(
       .from("research_profiles")
       .select("*")
       .eq("candidate_id", candidate.id)
-      .maybeSingle<ResearchProfileRecord>()
+      .maybeSingle<ResearchProfileRecord>(),
+    getCandidateSchedulingDetail(candidate.id)
   ]);
 
   if (applicationError) {
@@ -209,6 +212,7 @@ export async function getCandidateDetail(
   const screeningResult = screeningResultResult.data ?? null;
   const researchProfileError = researchProfileResult.error;
   const researchProfile = researchProfileResult.data ?? null;
+  const schedulingDetail = schedulingDetailResult;
 
   if (screeningError) {
     console.error("Failed to load candidate screening result", screeningError);
@@ -230,6 +234,8 @@ export async function getCandidateDetail(
     application,
     role,
     auditLogs: auditLogs ?? [],
+    interview: schedulingDetail.interview,
+    calendarHolds: schedulingDetail.calendarHolds,
     screeningResult: screeningResult ?? null,
     researchProfile: researchProfile ?? null
   };

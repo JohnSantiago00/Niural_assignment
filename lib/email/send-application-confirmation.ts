@@ -31,7 +31,7 @@ export async function sendApplicationConfirmationEmail({
   const resend = new Resend(apiKey);
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: getRequiredEnv("RESEND_FROM_EMAIL"),
       to: email,
       subject: `Application received for ${roleTitle}`,
@@ -42,6 +42,10 @@ Thanks for applying to the ${roleTitle} role at Niural. We received your applica
 Best,
 Niural Hiring Team`,
     });
+
+    if (result.error) {
+      return { status: "failed" as const, error: result.error.message };
+    }
 
     return { status: "sent" as const };
   } catch (error) {
