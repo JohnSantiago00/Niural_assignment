@@ -24,6 +24,40 @@ function sanitizeItems(items: string[], limit: number) {
     .slice(0, limit);
 }
 
+export function isRecoverableGeminiAvailabilityError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return /RESOURCE_EXHAUSTED|UNAVAILABLE|429|quota|rate limit|high demand/i.test(message);
+}
+
+export function buildDeterministicInterviewSummary(input: {
+  candidateName: string;
+  roleTitle: string;
+}): InterviewSummaryOutput {
+  return {
+    overall_assessment: `${input.candidateName} completed the interview simulation for the ${input.roleTitle} role. The deterministic fallback summary is being used because the AI provider was temporarily unavailable during QA.`,
+    strengths_observed: [
+      "Discussed role fit and relevant experience in relation to the published role requirements.",
+      "Showed willingness to clarify expectations and ramp quickly where gaps exist.",
+      "Connected the conversation back to execution, communication, and structured judgment."
+    ],
+    concerns_observed: [
+      "This fallback summary should be reviewed manually because the AI interview summarizer was unavailable."
+    ],
+    key_topics_discussed: [
+      "Role requirements",
+      "Relevant experience",
+      "Potential gaps and ramp plan",
+      "Candidate motivation"
+    ],
+    recommended_follow_up: [
+      "Review the transcript preview before making a final hiring decision.",
+      "Retry AI summarization later if a richer interview artifact is needed."
+    ],
+    concise_summary: `${input.candidateName} completed the interview step for the ${input.roleTitle} role. A deterministic QA fallback summary was saved so the hiring workflow can continue while the AI quota resets.`
+  };
+}
+
 export async function summarizeInterviewTranscript(input: {
   candidateName: string;
   roleTitle: string;

@@ -106,3 +106,23 @@
 
 - IP capture is unavailable
   - signing still succeeds with a null IP rather than losing the signed offer
+
+## Slack onboarding
+
+- Offer signing is submitted twice
+  - Slack onboarding is not duplicated; the existing candidate-linked record is reused
+
+- Slack invite admin API is unavailable
+  - invite status is marked skipped or failed with a readable limitation instead of fake success
+
+- Candidate already exists in Slack
+  - lookup by email marks the candidate as joined and skips repeated invites
+
+- Slack join event arrives more than once
+  - welcome and HR messages are not resent after delivery timestamps exist
+
+- Slack message delivery fails
+  - onboarding state remains visible in admin and the failed message path is stored for follow-up
+
+- Slack Events request has an invalid signature
+  - the API route rejects it before touching onboarding state

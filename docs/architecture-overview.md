@@ -6,13 +6,14 @@ The app is a single Next.js App Router codebase with public candidate pages,
 protected admin pages, and server-first workflow helpers. Supabase Postgres is
 the system of record, Supabase Storage holds resumes, Gemini handles bounded AI
 generation tasks, Google Calendar supports interview scheduling, and Resend
-handles best-effort candidate/admin email delivery.
+handles best-effort candidate/admin email delivery. Slack supports onboarding
+lookup and messaging after offer signature when configured.
 
 Core layers:
 
 - UI: `app/` and `components/`
-- workflow logic: `lib/applications`, `lib/screening`, `lib/enrichment`, `lib/scheduling`, `lib/interview`, `lib/offers`
-- integrations: `lib/supabase`, `lib/gemini`, `lib/email`
+- workflow logic: `lib/applications`, `lib/screening`, `lib/enrichment`, `lib/scheduling`, `lib/interview`, `lib/offers`, `lib/slack`
+- integrations: `lib/supabase`, `lib/gemini`, `lib/email`, `lib/slack`
 - shared types and validation: `types/`, `lib/utils`, Zod schemas
 
 ## Candidate apply to offer flow
@@ -27,6 +28,7 @@ Core layers:
 8. Admin completes the interview and stores transcript summary plus feedback
 9. Admin sends an offer from hiring-manager inputs
 10. Candidate opens `/offer/[signingToken]` and signs with the canvas pad
+11. Slack onboarding starts from the signed offer and sends real Slack messages when the workspace/app permissions allow it
 
 ## Deterministic workflow ownership
 
@@ -41,6 +43,7 @@ Application logic controls:
 - Google Calendar/DB hold conflict prevention
 - interview completion state
 - offer eligibility, sent state, signing token validation, and first-signature-wins behavior
+- Slack onboarding state, join detection, and message idempotency
 - admin route protection
 
 Gemini generates structured or plain-text artifacts, but it does not directly
@@ -56,6 +59,7 @@ Current AI tasks:
 - shortlist-only profile enrichment
 - interview transcript summarization
 - offer-letter drafting from explicit hiring-manager inputs
+- Slack welcome-message drafting from explicit onboarding context
 
 Gemini output is parsed and validated before persistence. For offer letters, the
 app additionally strips common JSON/placeholder artifacts before saving the
@@ -76,6 +80,15 @@ the app generates the letter, stores it, sends the candidate email, and exposes 
 tokenized signing page. Signing captures a PNG data URL, timestamp, and request
 IP. Resend sends a best-effort alert to the hiring team when the offer is signed.
 
+## Slack onboarding architecture
+
+Slack onboarding is stored in `slack_onboarding` and starts only after an offer
+is signed. The app attempts real Slack lookup by email, optionally attempts a
+workspace invite when admin invite credentials are configured, and sends welcome
+and HR messages through Slack when the candidate is detected in the workspace.
+Invite API limitations are stored as follow-up state rather than treated as
+success.
+
 ## Auth / admin access
 
 Admin access uses:
@@ -88,5 +101,6 @@ Candidate scheduling and signing pages are public but tokenized.
 
 ## What comes next
 
-The remaining major phase is onboarding handoff after signed offer, such as
-Slack onboarding or internal account setup.
+Future hardening can add richer onboarding checklists, internal account setup,
+or deeper Slack workspace administration once the target workspace permissions
+are known.

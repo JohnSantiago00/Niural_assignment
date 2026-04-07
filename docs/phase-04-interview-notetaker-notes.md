@@ -42,6 +42,12 @@ Gemini summarizes the transcript only after the app has created or received one.
 The model does not decide whether an interview is completed and does not mutate
 candidate state directly.
 
+If Gemini is temporarily rate-limited during QA, the simulated completion path
+stores a deterministic fallback summary so the interview can still move to the
+completed state. The saved transcript remains available, and the fallback is
+marked with `model_name = deterministic-fallback` so it is not confused with a
+fresh model-generated artifact.
+
 Application code controls:
 
 - whether simulation is allowed

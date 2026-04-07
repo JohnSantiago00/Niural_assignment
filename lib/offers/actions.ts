@@ -21,6 +21,7 @@ import {
   updateOfferEmailDelivery
 } from "@/lib/offers/workflow";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { triggerSlackOnboardingAfterOfferSigned } from "@/lib/slack/workflow";
 import { getOptionalEnv } from "@/lib/utils/env";
 import type { CandidateRecord, OfferRecord, RoleRecord } from "@/types/database";
 
@@ -148,6 +149,21 @@ export async function signOfferAction(signingToken: string, formData: FormData) 
           });
           alertStatus = delivery.status;
           alertError = "error" in delivery ? delivery.error ?? null : null;
+
+          if (view.role) {
+            // Slack onboarding starts after the durable offer signature is
+            // stored. Slack invite/message failures are recorded separately so
+            // they never undo a valid signed offer.
+            try {
+              await triggerSlackOnboardingAfterOfferSigned({
+                offer,
+                candidate: view.candidate,
+                role: view.role
+              });
+            } catch (slackError) {
+              console.error("Slack onboarding trigger failed after offer signing", slackError);
+            }
+          }
         }
       } catch (error) {
         alertStatus = "failed";

@@ -17,6 +17,12 @@ Phase 05 adds the offer workflow after interview completion.
 
 Gemini drafts the professional offer letter from explicit admin inputs and candidate context. It does not decide whether the candidate should receive an offer, does not send the offer, and does not mark the offer signed. Those workflow transitions remain deterministic app logic.
 
+During QA, if Gemini is temporarily quota-limited or unavailable, the send-offer
+flow falls back to a deterministic plain-English offer letter built only from
+the hiring-manager inputs. This keeps the end-to-end signing/onboarding path
+testable while still preserving the normal Gemini path when the provider is
+available.
+
 ## Why Custom Signing
 
 The assignment allows a custom signing UI if signature, timestamp, and IP address are captured. This prototype uses a canvas signature pad instead of DocuSign/PandaDoc so the signing flow is easy to demo without external signing vendor setup.

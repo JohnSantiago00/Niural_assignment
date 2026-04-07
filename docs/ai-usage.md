@@ -2,7 +2,7 @@
 
 ## What AI is used for
 
-Gemini is used for four focused tasks:
+Gemini is used for five focused tasks:
 
 1. Resume screening
    - compare resume text against the applied role
@@ -23,6 +23,10 @@ Gemini is used for four focused tasks:
    - draft a plain-English offer letter from explicit hiring-manager inputs
    - use candidate/role/interview context as supporting context only
 
+5. Slack welcome copy
+   - draft a concise onboarding welcome message from candidate, role, start date, manager, and configured resources
+   - app logic still controls Slack lookup, invite state, and message delivery
+
 ## What AI is not used for
 
 AI is not used to:
@@ -33,6 +37,7 @@ AI is not used to:
 - directly update workflow state on its own
 - browse the public web freely outside the source content the app provides
 - mark offers as sent or signed
+- decide whether a candidate joined Slack or should be marked onboarded
 
 ## Separation of concerns
 
@@ -42,6 +47,7 @@ Each AI workflow has its own helper and persistence layer:
 - enrichment writes to `research_profiles`
 - interview summary writes to `interview_transcripts`
 - offer drafting writes plain letter text to `offers`
+- Slack welcome generation only produces message copy after app-controlled join detection
 
 This keeps the system easier to reason about and prevents a model response from
 controlling the candidate lifecycle.
@@ -63,6 +69,11 @@ and the offer-letter envelope. The app validates those outputs with Zod before
 database writes. The offer-letter helper also sanitizes common JSON/code-fence
 artifacts before storing candidate-facing text.
 
+For demo continuity, the interview-summary and offer-letter flows have
+deterministic fallbacks for temporary Gemini quota/high-demand errors. Those
+fallbacks are built only from app data and are marked as deterministic fallback
+artifacts; they do not let AI or a provider failure control workflow state.
+
 ## Why workflow state remains deterministic
 
 Application logic still controls:
@@ -73,6 +84,7 @@ Application logic still controls:
 - scheduling hold creation and confirmation
 - interview completion
 - offer send/sign transitions
+- Slack onboarding state transitions
 - admin access and route protection
 
 ## Why Gemini was chosen for this version

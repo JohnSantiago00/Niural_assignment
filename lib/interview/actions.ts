@@ -9,7 +9,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireAdminUser } from "@/lib/auth/authorization";
-import { summarizeInterviewTranscript } from "@/lib/gemini/summarize-interview";
+import {
+  buildDeterministicInterviewSummary,
+  isRecoverableGeminiAvailabilityError,
+  summarizeInterviewTranscript
+} from "@/lib/gemini/summarize-interview";
 import { buildSimulatedInterviewTranscript } from "@/lib/interview/simulate-interview";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type {
@@ -98,11 +102,31 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
       screeningResult: screeningResult ?? null,
       researchProfile: researchProfile ?? null
     });
-    const { summary, modelName } = await summarizeInterviewTranscript({
-      candidateName: candidate.full_name,
-      roleTitle: role.title,
-      transcriptText
-    });
+    let summary;
+    let modelName = "deterministic-fallback";
+
+    try {
+      const generated = await summarizeInterviewTranscript({
+        candidateName: candidate.full_name,
+        roleTitle: role.title,
+        transcriptText
+      });
+      summary = generated.summary;
+      modelName = generated.modelName;
+    } catch (error) {
+      if (!isRecoverableGeminiAvailabilityError(error)) {
+        throw error;
+      }
+
+      // QA should not be blocked by temporary Gemini quota/high-demand errors.
+      // The transcript remains real app data; this fallback summary is clearly
+      // labeled by model_name and can be regenerated later if needed.
+      console.warn("Gemini interview summary unavailable; using deterministic fallback", error);
+      summary = buildDeterministicInterviewSummary({
+        candidateName: candidate.full_name,
+        roleTitle: role.title
+      });
+    }
     const completedAt = new Date().toISOString();
 
     const { error: transcriptError } = await supabase.from("interview_transcripts").upsert(

@@ -11,6 +11,7 @@ The app currently covers:
 - Phase 03: deterministic interview scheduling with DB-backed slot holds, Google Calendar free/busy, confirmed event creation, and an admin-approved reschedule loop
 - Phase 04: simulated interview completion, AI transcript summary, and interviewer feedback
 - Phase 05: AI-generated offer letters with custom in-app canvas signature capture
+- Phase 06: Slack onboarding trigger after offer signature, with real Slack lookup/messaging and honest invite capability handling
 
 The product is intentionally designed to be:
 
@@ -32,13 +33,13 @@ Implemented today:
 - interview slot offering with DB-backed holds, Google Calendar-backed availability, and a public tokenized selection page
 - simulated interview-complete flow with persisted transcript summary and interviewer feedback
 - offer generation, candidate signing links, canvas signature capture, and signed-offer alert emails
+- Slack onboarding state, candidate join detection, welcome messages, and HR notifications after signed offers
 - admin override support for shortlist decisions
 - admin-only QA hard delete for fully resetting test candidates and their application records
 - Supabase Auth login plus `admin_users` allowlist
 
 Not implemented yet:
 
-- Slack onboarding
 - heavy scraping or official third-party social integrations
 
 ## Tech Stack
@@ -103,6 +104,7 @@ Real:
 - simulated transcript generation plus Gemini interview summarization
 - AI offer-letter drafting from hiring-manager inputs and candidate context
 - custom in-app offer signing with drawn signature, timestamp, and IP capture
+- Slack user lookup and messaging through the real Slack API when configured
 
 MVP / intentionally limited:
 
@@ -114,6 +116,7 @@ MVP / intentionally limited:
 - hard delete is present only as an admin QA reset utility, not as a normal end-user product feature
 - Phase 04 uses a simulated transcript path for demo; the storage shape is ready for a real notetaker provider later
 - Phase 05 stores signature PNG data directly on the offer row for MVP simplicity instead of using a document-signing vendor or separate storage artifact
+- Slack workspace invitations depend on Slack admin API access; when unavailable, the app records the limitation instead of faking success
 - PDF parsing uses a pragmatic Node-friendly parser and may be imperfect on layout-heavy files
 
 ## Environment Variables
@@ -137,6 +140,15 @@ SUPABASE_RESUME_BUCKET=candidate-resumes
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=Hiring Team <hiring@example.com>
 OFFER_ALERT_EMAIL=
+SLACK_BOT_TOKEN=
+SLACK_SIGNING_SECRET=
+SLACK_ADMIN_TOKEN=
+SLACK_TEAM_ID=
+SLACK_INVITE_CHANNEL_IDS=
+SLACK_WORKSPACE_INVITE_URL=
+SLACK_HR_CHANNEL_ID=
+SLACK_ONBOARDING_CHANNEL_ID=
+SLACK_ONBOARDING_RESOURCE_LINKS=
 ```
 
 Notes:
@@ -150,6 +162,10 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and powers protected writes plus private storage access.
 - Resend is optional for candidate communication paths and the Phase 05 signed-offer alert.
 - `OFFER_ALERT_EMAIL` optionally routes signed-offer alerts to a hiring team inbox; otherwise the app falls back to interviewer/from email settings.
+- `SLACK_BOT_TOKEN` powers Slack lookup and messages; `SLACK_SIGNING_SECRET` verifies Slack Events API requests.
+- `SLACK_ADMIN_TOKEN`, `SLACK_TEAM_ID`, and `SLACK_INVITE_CHANNEL_IDS` are optional and only needed for real Slack workspace invite attempts.
+- `SLACK_WORKSPACE_INVITE_URL` enables a Resend email fallback when Slack admin invites are unavailable; after the candidate joins, the admin can run the Slack onboarding check or a deployed app can receive Slack Events API join events.
+- `SLACK_ONBOARDING_CHANNEL_ID` receives the public new-hire welcome, `SLACK_HR_CHANNEL_ID` receives the internal HR notification, and `SLACK_ONBOARDING_RESOURCE_LINKS` adds first-week links to the welcome messages.
 
 ## Local Setup
 
@@ -174,6 +190,8 @@ npm install
 - [0011_phase_04_interview_notetaker.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0011_phase_04_interview_notetaker.sql)
 - [0012_phase_05_offers.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0012_phase_05_offers.sql)
 - [0013_phase_05_offer_delivery_polish.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0013_phase_05_offer_delivery_polish.sql)
+- [0014_phase_06_slack_onboarding.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0014_phase_06_slack_onboarding.sql)
+- [0015_phase_06_slack_invite_email_status.sql](/Users/nick/Desktop/Niural_assignment/supabase/migrations/0015_phase_06_slack_invite_email_status.sql)
 
 3. Create at least one Supabase Auth user and add that email to `public.admin_users`
 
@@ -212,8 +230,9 @@ Admin side:
 11. send an offer from short hiring-manager inputs; the app generates the letter, stores it, and emails the tokenized signing link
 12. review offer delivery metadata such as recipient, sent time, and email status
 13. review signed-offer state after the candidate draws a signature in the portal
-14. review brief, discrepancy flags, and source summaries
-15. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application
+14. review Slack onboarding state after offer signature and use the admin check to send welcome messages after the candidate joins Slack
+15. review brief, discrepancy flags, and source summaries
+16. if testing needs a clean reset, use the candidate detail page danger zone to hard delete the test candidate and application
 
 ## Key Tradeoffs / Assumptions
 
@@ -225,6 +244,7 @@ Admin side:
 - Google Calendar and Resend are best-effort external side effects layered on top of DB truth; failed invite/email delivery does not roll back a valid in-app scheduling state.
 - Phase 04 uses a simulated interview transcript so the notetaker flow can be demoed without a live meeting bot.
 - Phase 05 uses a custom canvas signature pad instead of DocuSign/PandaDoc so the prototype visibly captures signature, timestamp, and IP without external signing setup.
+- Phase 06 uses real Slack API calls where the workspace/app configuration allows it, and records invite limitations honestly when admin invite APIs are unavailable.
 - The admin-only hard delete removes the application row as well as candidate-linked artifacts because duplicate protection is enforced on `applications(role_id, email)`.
 - The admin tool is protected, but this is still a prototype and not a production-grade enterprise auth system.
 
@@ -239,7 +259,10 @@ Admin side:
 - [Phase 03 Scheduling Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-03-scheduling-notes.md)
 - [Phase 04 Interview Notetaker Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-04-interview-notetaker-notes.md)
 - [Phase 05 Offer Signing Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-05-offer-signing-notes.md)
+- [Phase 06 Slack Onboarding Notes](/Users/nick/Desktop/Niural_assignment/docs/phase-06-slack-onboarding-notes.md)
 
 ## Next Steps
 
-The next major phase would add onboarding handoff features such as Slack onboarding.
+The next major work would be production hardening: connected interviewer calendars,
+real notetaker ingestion, PDF offer artifacts, and richer Slack/admin onboarding
+setup.

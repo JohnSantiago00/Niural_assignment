@@ -115,6 +115,43 @@ export type OfferRecord = {
   created_at: string;
   updated_at: string;
 };
+export type SlackOnboardingStatus =
+  | "not_started"
+  | "invite_pending"
+  | "invite_sent"
+  | "invite_failed"
+  | "joined"
+  | "welcome_sent"
+  | "completed"
+  | "needs_manual_follow_up";
+export type SlackInviteStatus =
+  | "not_attempted"
+  | "sent"
+  | "invite_email_sent"
+  | "failed"
+  | "skipped"
+  | "already_joined";
+export type SlackMessageStatus = "not_sent" | "sent" | "failed";
+export type SlackOnboardingRecord = {
+  id: string;
+  candidate_id: string;
+  offer_id: string;
+  onboarding_status: SlackOnboardingStatus;
+  slack_invite_email: string;
+  slack_user_id: string | null;
+  invite_attempted_at: string | null;
+  invite_status: SlackInviteStatus;
+  invite_error: string | null;
+  joined_at: string | null;
+  welcome_sent_at: string | null;
+  welcome_status: SlackMessageStatus;
+  welcome_error: string | null;
+  hr_notified_at: string | null;
+  hr_notification_status: SlackMessageStatus;
+  hr_notification_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type ResearchProfileRecord = {
   id: string;
   candidate_id: string;
@@ -417,6 +454,31 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<OfferRecord>;
+        Relationships: [];
+      };
+      slack_onboarding: {
+        Row: SlackOnboardingRecord;
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          offer_id: string;
+          onboarding_status?: SlackOnboardingStatus;
+          slack_invite_email: string;
+          slack_user_id?: string | null;
+          invite_attempted_at?: string | null;
+          invite_status?: SlackInviteStatus;
+          invite_error?: string | null;
+          joined_at?: string | null;
+          welcome_sent_at?: string | null;
+          welcome_status?: SlackMessageStatus;
+          welcome_error?: string | null;
+          hr_notified_at?: string | null;
+          hr_notification_status?: SlackMessageStatus;
+          hr_notification_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<SlackOnboardingRecord>;
         Relationships: [];
       };
       screening_results: {

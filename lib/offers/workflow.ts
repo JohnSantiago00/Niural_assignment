@@ -4,7 +4,11 @@
  * creates tokens, sends offers, and records signatures.
  */
 import crypto from "node:crypto";
-import { generateOfferLetterDraft } from "@/lib/gemini/generate-offer-letter";
+import {
+  buildDeterministicOfferLetterDraft,
+  generateOfferLetterDraft
+} from "@/lib/gemini/generate-offer-letter";
+import { isRecoverableGeminiAvailabilityError } from "@/lib/gemini/summarize-interview";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type {
   CandidateRecord,
@@ -168,7 +172,7 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     throw new Error("Start date must be after the interview date.");
   }
 
-  const { letter, modelName } = await generateOfferLetterDraft({
+  const draftInput = {
     candidateName: candidate.full_name,
     roleTitle: role.title,
     team: role.team,
@@ -180,7 +184,27 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     equityOrBonus: input.equityOrBonus,
     reportingManager: input.reportingManager,
     customTerms: input.customTerms
-  });
+  };
+  let letter;
+  let modelName = "deterministic-fallback";
+
+  try {
+    const generated = await generateOfferLetterDraft(draftInput);
+    letter = generated.letter;
+    modelName = generated.modelName;
+  } catch (error) {
+    if (!isRecoverableGeminiAvailabilityError(error)) {
+      throw error;
+    }
+
+    // Keep QA moving when Gemini is temporarily quota-limited. The offer is
+    // still generated from explicit hiring-manager inputs and is tagged with a
+    // deterministic model name so reviewers can tell it was not AI-generated.
+    console.warn("Gemini offer draft unavailable; using deterministic fallback", error);
+    const fallback = buildDeterministicOfferLetterDraft(draftInput);
+    letter = fallback.letter;
+    modelName = fallback.modelName;
+  }
 
   const signingToken = generateSigningToken();
   const { data: offer, error: offerError } = await supabase

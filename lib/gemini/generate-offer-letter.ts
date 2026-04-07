@@ -12,7 +12,7 @@ export const offerLetterSchema = z.object({
 
 export type OfferLetterOutput = z.infer<typeof offerLetterSchema>;
 
-export async function generateOfferLetterDraft(input: {
+export type OfferLetterDraftInput = {
   candidateName: string;
   roleTitle: string;
   team: string;
@@ -24,7 +24,37 @@ export async function generateOfferLetterDraft(input: {
   equityOrBonus: string | null;
   reportingManager: string;
   customTerms: string | null;
-}) {
+};
+
+export function buildDeterministicOfferLetterDraft(input: OfferLetterDraftInput) {
+  const optionalTerms = [
+    input.equityOrBonus ? `Additional compensation: ${input.equityOrBonus}.` : null,
+    input.customTerms ? `Additional terms: ${input.customTerms}.` : null
+  ].filter((term): term is string => Boolean(term));
+
+  return {
+    letter: sanitizeOfferLetter(
+      [
+        `Dear ${input.candidateName},`,
+        "",
+        `We are pleased to offer you the position of ${input.confirmedJobTitle} with Niural. In this role, you will join the ${input.team} team and report to ${input.reportingManager}.`,
+        "",
+        `Your anticipated start date is ${input.startDate}. This is a full-time position with a base salary of ${input.baseSalary}.`,
+        "",
+        ...optionalTerms.flatMap((term) => [term, ""]),
+        "We were impressed by the experience and perspective you brought through the hiring process, and we are excited about the possibility of working together.",
+        "",
+        "Please review the offer terms carefully. If everything looks good, you can accept by signing this offer through the secure signing link.",
+        "",
+        "Best,",
+        "Niural Hiring Team"
+      ].join("\n")
+    ),
+    modelName: "deterministic-fallback"
+  };
+}
+
+export async function generateOfferLetterDraft(input: OfferLetterDraftInput) {
   const { data, modelName } = await generateStructuredObject<OfferLetterOutput>({
     validationSchema: offerLetterSchema,
     responseSchema: offerLetterSchema,

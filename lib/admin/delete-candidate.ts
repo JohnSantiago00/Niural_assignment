@@ -14,6 +14,7 @@ async function deleteRows(
     | "interview_transcripts"
     | "interviews"
     | "offers"
+    | "slack_onboarding"
     | "research_profiles"
     | "screening_results"
     | "audit_logs"
@@ -62,6 +63,7 @@ export async function hardDeleteCandidate(candidateId: string) {
   await deleteRows("interview_feedback", "candidate_id", candidate.id);
   await deleteRows("interview_transcripts", "candidate_id", candidate.id);
   await deleteRows("interviews", "candidate_id", candidate.id);
+  await deleteRows("slack_onboarding", "candidate_id", candidate.id);
   await deleteRows("offers", "candidate_id", candidate.id);
   await deleteRows("research_profiles", "candidate_id", candidate.id);
   await deleteRows("screening_results", "candidate_id", candidate.id);

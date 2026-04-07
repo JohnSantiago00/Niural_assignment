@@ -12,7 +12,8 @@ import type {
   OfferRecord,
   ResearchProfileRecord,
   RoleRecord,
-  ScreeningResultRecord
+  ScreeningResultRecord,
+  SlackOnboardingRecord
 } from "@/types/database";
 import type { CandidateWorkflowStatus } from "@/lib/utils/candidate-status";
 
@@ -45,6 +46,7 @@ export type CandidateDetailView = {
   interviewTranscript: InterviewTranscriptRecord | null;
   interviewFeedback: InterviewFeedbackRecord | null;
   offer: OfferRecord | null;
+  slackOnboarding: SlackOnboardingRecord | null;
   screeningResult: ScreeningResultRecord | null;
   researchProfile: ResearchProfileRecord | null;
 };

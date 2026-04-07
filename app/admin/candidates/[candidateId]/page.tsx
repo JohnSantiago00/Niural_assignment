@@ -23,6 +23,7 @@ import {
   offerInterviewSlotsAction,
   regenerateRescheduleSuggestionsAction
 } from "@/lib/scheduling/actions";
+import { checkSlackJoinAction } from "@/lib/slack/actions";
 import {
   getInterviewStatusClasses,
   getInterviewStatusLabel
@@ -62,6 +63,8 @@ type CandidateDetailPageProps = {
     offerDelivery?: string;
     offerDeliveryError?: string;
     offerRecipient?: string;
+    slack?: string;
+    slackError?: string;
     override?: string;
     overrideError?: string;
   }>;
@@ -192,6 +195,43 @@ function getOfferStatusLabel(status: string) {
   )[status] ?? status;
 }
 
+function getSlackOnboardingStatusLabel(status: string) {
+  return (
+    {
+      not_started: "Not started",
+      invite_pending: "Invite pending",
+      invite_sent: "Invite sent",
+      invite_failed: "Invite needs follow-up",
+      joined: "Joined Slack",
+      welcome_sent: "Welcome sent",
+      completed: "Onboarded",
+      needs_manual_follow_up: "Manual follow-up needed"
+    } as Record<string, string>
+  )[status] ?? status;
+}
+
+function getSlackDeliveryLabel(status: string) {
+  return (
+    {
+      not_attempted: "Not attempted",
+      not_sent: "Not sent",
+      sent: "Sent",
+      invite_email_sent: "Slack invite email sent",
+      failed: "Needs follow-up",
+      skipped: "Not configured",
+      already_joined: "Already joined"
+    } as Record<string, string>
+  )[status] ?? status;
+}
+
+function getSlackInviteLabel(status: string) {
+  if (status === "skipped") {
+    return "No invite path";
+  }
+
+  return getSlackDeliveryLabel(status);
+}
+
 function isOfferEligible(detail: CandidateDetailView) {
   return ["interview_completed", "offer_drafted", "offer_sent", "offer_signed"].includes(
     detail.candidate.current_status
@@ -290,6 +330,14 @@ function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams
 
   if (params.offerError) {
     messages.push({ tone: "error", message: params.offerError });
+  }
+
+  if (params.slack === "checked") {
+    messages.push({ tone: "success", message: "Slack onboarding status refreshed." });
+  }
+
+  if (params.slackError) {
+    messages.push({ tone: "error", message: params.slackError });
   }
 
   if (params.override === "saved") {
@@ -1023,6 +1071,85 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
   );
 }
 
+function SlackOnboardingPanel({ detail }: { detail: CandidateDetailView }) {
+  if (detail.candidate.current_status !== "offer_signed" && !detail.slackOnboarding) {
+    return null;
+  }
+
+  const onboarding = detail.slackOnboarding;
+
+  return (
+    <SectionCard title="Slack onboarding" eyebrow="Phase 06">
+      {!onboarding ? (
+        <p className="text-sm leading-6 text-slate-500">
+          Slack onboarding starts automatically after the offer is signed.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <MiniStat
+              label="Onboarding status"
+              value={getSlackOnboardingStatusLabel(onboarding.onboarding_status)}
+            />
+            <MiniStat
+              label="Invite"
+              value={getSlackInviteLabel(onboarding.invite_status)}
+              helper={onboarding.slack_invite_email}
+            />
+            <MiniStat
+              label="Joined"
+              value={onboarding.joined_at ? formatDateTime(onboarding.joined_at) : "Waiting for candidate to join Slack"}
+              helper={onboarding.slack_user_id ?? undefined}
+            />
+            <MiniStat
+              label="Team welcome + DM"
+              value={getSlackDeliveryLabel(onboarding.welcome_status)}
+              helper={onboarding.welcome_sent_at ? formatDateTime(onboarding.welcome_sent_at) : undefined}
+            />
+            <MiniStat
+              label="HR notification"
+              value={getSlackDeliveryLabel(onboarding.hr_notification_status)}
+              helper={onboarding.hr_notified_at ? formatDateTime(onboarding.hr_notified_at) : undefined}
+            />
+          </div>
+
+          {onboarding.invite_error || onboarding.welcome_error || onboarding.hr_notification_error ? (
+            <details className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <summary className="cursor-pointer font-semibold">Onboarding follow-up</summary>
+              <div className="mt-3 space-y-2 leading-6">
+                {onboarding.invite_error ? <p>{onboarding.invite_error}</p> : null}
+                {onboarding.welcome_error ? <p>{onboarding.welcome_error}</p> : null}
+                {onboarding.hr_notification_error ? <p>{onboarding.hr_notification_error}</p> : null}
+              </div>
+            </details>
+          ) : null}
+
+          {onboarding.onboarding_status !== "completed" ? (
+            <div className="rounded-2xl border border-line bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-950">
+                Ready after the candidate joins Slack
+              </p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Once the candidate accepts the Slack invite and can access the
+                workspace, run this check to send the team welcome, personal DM,
+                and HR notification.
+              </p>
+              <form className="mt-4" action={checkSlackJoinAction.bind(null, detail.candidate.id)}>
+                <button
+                  type="submit"
+                  className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accentDark"
+                >
+                  Check Slack and send welcome
+                </button>
+              </form>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
   return (
     <SectionCard title="Candidate intelligence" eyebrow="Screening & enrichment">
@@ -1358,6 +1485,7 @@ export default async function CandidateDetailPage({
           <InterviewIntelligence detail={detail} />
           <InterviewFeedbackPanel detail={detail} />
           <OfferPanel detail={detail} />
+          <SlackOnboardingPanel detail={detail} />
           <CandidateIntelligence detail={detail} />
           <ActivityTimeline detail={detail} />
           <SecondaryAdminTools detail={detail} />

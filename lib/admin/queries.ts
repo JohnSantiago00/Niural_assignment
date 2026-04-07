@@ -24,7 +24,8 @@ import type {
   OfferRecord,
   ResearchProfileRecord,
   RoleRecord,
-  ScreeningResultRecord
+  ScreeningResultRecord,
+  SlackOnboardingRecord
 } from "@/types/database";
 
 function normalizeStatus(value: string): CandidateWorkflowStatus {
@@ -176,7 +177,8 @@ export async function getCandidateDetail(
     schedulingDetailResult,
     interviewTranscriptResult,
     interviewFeedbackResult,
-    offerResult
+    offerResult,
+    slackOnboardingResult
   ] = await Promise.all([
     supabase
       .from("applications")
@@ -214,7 +216,12 @@ export async function getCandidateDetail(
       .from("offers")
       .select("*")
       .eq("candidate_id", candidate.id)
-      .maybeSingle<OfferRecord>()
+      .maybeSingle<OfferRecord>(),
+    supabase
+      .from("slack_onboarding")
+      .select("*")
+      .eq("candidate_id", candidate.id)
+      .maybeSingle<SlackOnboardingRecord>()
   ]);
 
   if (applicationError) {
@@ -240,6 +247,8 @@ export async function getCandidateDetail(
   const interviewFeedback = interviewFeedbackResult.data ?? null;
   const offerError = offerResult.error;
   const offer = offerResult.data ?? null;
+  const slackOnboardingError = slackOnboardingResult.error;
+  const slackOnboarding = slackOnboardingResult.data ?? null;
 
   if (screeningError) {
     console.error("Failed to load candidate screening result", screeningError);
@@ -261,6 +270,10 @@ export async function getCandidateDetail(
     console.error("Failed to load candidate offer", offerError);
   }
 
+  if (slackOnboardingError) {
+    console.error("Failed to load candidate Slack onboarding state", slackOnboardingError);
+  }
+
   if (!application || !role) {
     return null;
   }
@@ -278,6 +291,7 @@ export async function getCandidateDetail(
     interviewTranscript: interviewTranscript ?? null,
     interviewFeedback: interviewFeedback ?? null,
     offer: offer ?? null,
+    slackOnboarding: slackOnboarding ?? null,
     screeningResult: screeningResult ?? null,
     researchProfile: researchProfile ?? null
   };
