@@ -1,8 +1,8 @@
 "use server";
 
 /**
- * Phase 05 offer server actions. Admin actions require admin auth; the public
- * signing action only works through a valid token and never trusts client-side
+ * Offer server actions. Admin actions require admin auth; the public signing
+ * action only works through a valid token and never trusts client-side
  * signature-pad checks alone.
  */
 import { headers } from "next/headers";

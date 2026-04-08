@@ -17,7 +17,7 @@ Phase 05 adds the offer workflow after interview completion.
 
 Gemini drafts the professional offer letter from explicit admin inputs and candidate context. It does not decide whether the candidate should receive an offer, does not send the offer, and does not mark the offer signed. Those workflow transitions remain deterministic app logic.
 
-During QA, if Gemini is temporarily quota-limited or unavailable, the send-offer
+If Gemini is temporarily quota-limited or unavailable, the send-offer
 flow falls back to a deterministic plain-English offer letter built only from
 the hiring-manager inputs. This keeps the end-to-end signing/onboarding path
 testable while still preserving the normal Gemini path when the provider is
@@ -25,11 +25,11 @@ available.
 
 ## Why Custom Signing
 
-The assignment allows a custom signing UI if signature, timestamp, and IP address are captured. This prototype uses a canvas signature pad instead of DocuSign/PandaDoc so the signing flow is easy to demo without external signing vendor setup.
+The signing flow uses a custom canvas signature pad that captures signature, timestamp, and IP address without requiring an external signing vendor.
 
 ## Signature Storage Tradeoff
 
-The drawn signature is stored as a PNG data URL on the `offers` row. For this prototype, that is the smallest clear implementation because signatures are small and stay attached to the offer record. A production version would likely upload the PNG/PDF artifact to private storage and store only a path plus an immutable signing audit record.
+The drawn signature is stored as a PNG data URL on the `offers` row. That keeps the signature attached to the offer record. A production version would likely upload the PNG/PDF artifact to private storage and store only a path plus an immutable signing audit record.
 
 ## Signing Workflow
 
@@ -48,12 +48,15 @@ The drawn signature is stored as a PNG data URL on the `offers` row. For this pr
 ## Limitations
 
 - No third-party e-signature vendor is integrated yet.
-- The offer letter is not rendered into a PDF in this phase.
-- Signature image data is stored directly in Postgres for MVP simplicity.
+- The offer letter is not rendered into a PDF.
+- Signature image data is stored directly in Postgres for implementation simplicity.
 - Email delivery is best-effort and does not control offer truth.
 - Admin review shows offer status, recipient, sent time, and signed state rather than the full letter body.
 - The signing token does not currently expire because demo reliability is prioritized.
 
-## What Phase 06 Builds Next
+## How This Connects To Phase 06
 
-Phase 06 should handle onboarding handoff after the offer is signed, including Slack onboarding or other internal team setup flows.
+After the offer is signed, the app starts Slack onboarding by creating or
+reusing a `slack_onboarding` record. Depending on the configured Slack
+capabilities, it can send an invite-link email, detect the candidate by Slack
+email lookup, post a team welcome, send a candidate DM, and notify HR.

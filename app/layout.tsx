@@ -13,7 +13,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Niural Careers",
-  description: "AI-powered candidate onboarding foundation for Phase A."
+  description: "AI-powered hiring workflow for candidate intake and onboarding."
 };
 
 export default async function RootLayout({
@@ -23,7 +23,10 @@ export default async function RootLayout({
 }>) {
   const headerStore = await headers();
   const currentPath = headerStore.get("x-current-path") ?? "";
-  const isAdminRoute = currentPath.startsWith("/admin");
+  const isCareersFlow =
+    currentPath === "/careers" ||
+    currentPath.startsWith("/careers/") ||
+    currentPath === "/apply";
   const authState = await getAuthState();
 
   return (
@@ -39,7 +42,7 @@ export default async function RootLayout({
                 <Link href="/careers" className="hover:text-ink">
                   Careers
                 </Link>
-                {!isAdminRoute ? (
+                {isCareersFlow ? (
                   <Link href="/apply" className="hover:text-ink">
                     Apply
                   </Link>

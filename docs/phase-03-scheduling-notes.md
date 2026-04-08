@@ -2,8 +2,8 @@
 
 ## Why scheduling was implemented this way
 
-The MVP focuses on deterministic slot management with a real Google Calendar
-upgrade layered underneath it.
+The scheduling layer focuses on deterministic slot management with Google
+Calendar side effects layered underneath it.
 
 Google Calendar provides:
 
@@ -51,7 +51,7 @@ scheduled interview state, then stores a normalized warning for follow-up. This
 keeps the DB-backed interview lifecycle authoritative even when an external
 calendar side effect fails.
 
-For personal Gmail/shared-calendar prototypes, Google can reject attendee
+For personal Gmail/shared-calendar setups, Google can reject attendee
 invites from a service account with `Service accounts cannot invite attendees
 without Domain-Wide Delegation of Authority.` The app handles that by creating
 the calendar event without attendees when possible, storing a warning, and
@@ -137,7 +137,7 @@ than in email delivery.
 
 ## What is simplified vs production-grade
 
-Simplified for MVP:
+Current simplifications:
 
 - interviewer availability still uses fixed workday windows, but only inside
   the open gaps returned by Google Calendar free/busy
@@ -146,7 +146,7 @@ Simplified for MVP:
 - reschedule uses AI only to summarize candidate timing preferences, not to invent or finalize slots
 - confirmed reschedules do not yet cancel or update an existing Google Calendar event automatically
 
-## Manual QA
+## Manual Checks
 
 1. Offer interview slots for a shortlisted candidate from the admin page.
 2. Confirm the candidate receives the scheduling link email or the admin sees a clear best-effort delivery warning.
@@ -167,9 +167,3 @@ Production-grade version later:
 - email reminders and nudges
 - interviewer pools and panel coordination
 - automatic follow-up for expired holds
-
-## What later phases build next
-
-Phase 04 and Phase 05 now build on this scheduling layer with interview summaries,
-feedback, offer generation, and e-signature. The remaining next step after offer
-signature is the onboarding handoff.

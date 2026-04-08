@@ -1,7 +1,7 @@
 /**
- * Converts uploaded resumes into plain text for screening. This is intentionally
- * pragmatic: PDF and DOCX are supported because they cover the assignment
- * requirements and the vast majority of prototype resumes.
+ * Converts uploaded resumes into plain text for screening. PDF and DOCX are
+ * supported because they cover the expected candidate submissions without
+ * adding a separate document-processing service.
  */
 import { createRequire } from "node:module";
 import mammoth from "mammoth";
@@ -41,8 +41,8 @@ function withSuppressedPdfBufferWarning<T>(run: () => Promise<T>) {
 
 /**
  * Extracts text based on the stored file extension. DOCX extraction tends to be
- * more reliable than PDF extraction for layout-heavy resumes, which is an MVP
- * limitation documented in the Phase C notes.
+ * more reliable than PDF extraction for layout-heavy resumes, so parsing errors
+ * are surfaced clearly instead of sending low-quality text into screening.
  */
 export async function extractResumeText(filePath: string, fileBlob: Blob) {
   const extension = filePath.split(".").pop()?.toLowerCase();

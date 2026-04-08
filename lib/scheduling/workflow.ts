@@ -1,7 +1,7 @@
 /**
- * Phase 03 scheduling workflow. The core design principle is that holds live
- * in the database and are treated as the source of truth for slot conflicts.
- * That keeps offering, confirming, and expiring interview options explicit.
+ * Interview scheduling workflow. Holds live in the database and are treated as
+ * the source of truth for slot conflicts, which keeps offering, confirming,
+ * and expiring interview options explicit and recoverable.
  */
 import crypto from "node:crypto";
 import {

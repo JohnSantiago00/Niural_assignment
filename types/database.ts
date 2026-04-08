@@ -72,6 +72,9 @@ export type InterviewTranscriptRecord = {
   recommended_follow_up: string[];
   concise_summary: string;
   model_name: string;
+  input_fingerprint: string | null;
+  prompt_version: string | null;
+  generated_at: string | null;
   completed_at: string;
   created_at: string;
   updated_at: string;
@@ -102,6 +105,9 @@ export type OfferRecord = {
   custom_terms: string | null;
   generated_letter: string;
   generated_model_name: string;
+  input_fingerprint: string | null;
+  prompt_version: string | null;
+  generated_at: string | null;
   signing_token: string;
   signing_token_expires_at: string | null;
   offer_email_status: "sent" | "failed" | "skipped" | null;
@@ -261,6 +267,9 @@ export type ScreeningResultRecord = {
   rationale: string;
   shortlist_recommendation: boolean;
   model_name: string;
+  input_fingerprint: string | null;
+  prompt_version: string | null;
+  generated_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -401,6 +410,9 @@ export type Database = {
           recommended_follow_up?: string[];
           concise_summary: string;
           model_name: string;
+          input_fingerprint?: string | null;
+          prompt_version?: string | null;
+          generated_at?: string | null;
           completed_at?: string;
           created_at?: string;
           updated_at?: string;
@@ -440,6 +452,9 @@ export type Database = {
           custom_terms?: string | null;
           generated_letter: string;
           generated_model_name: string;
+          input_fingerprint?: string | null;
+          prompt_version?: string | null;
+          generated_at?: string | null;
           signing_token: string;
           signing_token_expires_at?: string | null;
           offer_email_status?: OfferRecord["offer_email_status"];
@@ -498,6 +513,9 @@ export type Database = {
           rationale: string;
           shortlist_recommendation: boolean;
           model_name: string;
+          input_fingerprint?: string | null;
+          prompt_version?: string | null;
+          generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

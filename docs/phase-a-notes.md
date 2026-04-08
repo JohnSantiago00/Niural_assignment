@@ -2,7 +2,7 @@
 
 ## What this phase solves
 
-Phase A is intentionally narrow. It creates a reliable public application intake flow that is easy to demo, easy to maintain, and easy to explain in an interview.
+The intake flow creates a reliable public application path that is easy to maintain and safe to connect to the downstream hiring workflow.
 
 The system currently does four things well:
 
@@ -74,22 +74,25 @@ If Resend fails, the API still returns success for the saved application and inc
 
 ### 5. Audit logging starts early
 
-`audit_logs` is included now even though Phase A is simple. That gives a lightweight history trail and sets up future admin workflows without adding much complexity.
+`audit_logs` gives a lightweight history trail for admin workflows without adding much complexity.
 
 ## Tradeoffs
 
-- The application and candidate inserts are coordinated in server code rather than a Postgres transaction function. That keeps the logic visible and interview-friendly, but it does mean we perform best-effort cleanup if a later step fails.
+- The application and candidate inserts are coordinated in server code rather than a Postgres transaction function. That keeps the logic explicit, but it does mean we perform best-effort cleanup if a later step fails.
 - Resume storage is private and server-managed, which is secure and simple, but it requires backend upload orchestration instead of direct browser uploads.
-- The admin area is only a placeholder in Phase A so we stay focused on the intake pipeline first.
+- Email delivery is best-effort; application persistence is more important than a confirmation email side effect.
 
-## How I would extend this later
+## How downstream workflow extends it
 
-Future phases can add:
+The current application-intake records now feed:
 
-- admin review views
-- AI scoring
+- admin review
+- AI screening
+- enrichment
 - interview scheduling
-- offer generation
-- onboarding automations
+- interview summaries
+- offer generation and signing
+- Slack onboarding
 
-The current structure leaves room for that without forcing those concerns into Phase A too early.
+That is the reason the first phase creates `applications`, `candidates`, and
+`audit_logs` rather than only sending an email or storing a flat form payload.

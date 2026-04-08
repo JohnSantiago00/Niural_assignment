@@ -1,10 +1,10 @@
 /**
- * Internal Phase B dashboard listing candidates already created by the public
- * intake flow. It stays server-rendered so the page is deterministic and easy
- * to reason about.
+ * Internal hiring dashboard listing candidates created by the public intake
+ * flow. It stays server-rendered so the page remains deterministic and fast.
  */
 import { AdminCandidateTable } from "@/components/admin-candidate-table";
 import { AdminFilterBar } from "@/components/admin-filter-bar";
+import { Pill, PublicContainer, PublicHero, SurfaceCard } from "@/components/public-ui";
 import { requireAdminUser } from "@/lib/auth/authorization";
 import {
   getAdminRoles,
@@ -35,26 +35,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ]);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-14">
-      <div className="max-w-3xl">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-accent">
-          Internal Hiring Dashboard
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900">
-          Review submitted candidates in one place.
-        </h1>
-        <p className="mt-4 text-base leading-7 text-slate-600">
-          Phase B turns the Phase A intake pipeline into an internal review
-          surface. Operators can scan candidates, filter the list, and open a
-          single candidate profile for more detail.
-        </p>
-      </div>
+    <PublicContainer className="py-12 sm:py-14">
+      <PublicHero
+        eyebrow="Admin portal"
+        title="Candidates"
+        description="Manage applications, interviews, offers, and onboarding in one place."
+      >
+        <div className="flex flex-wrap gap-3">
+          <Pill>{rows.length} visible candidates</Pill>
+          <Pill>{roles.length} open roles</Pill>
+          <Pill>Newest applications first</Pill>
+        </div>
+      </PublicHero>
 
       <div className="mt-10">
         {resolvedSearchParams.deleted ? (
-          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            Candidate test data was hard deleted successfully. The same email can now reapply for the same role.
-          </div>
+          <SurfaceCard className="mb-6 border-emerald-200 bg-emerald-50/90 px-5 py-4 text-sm text-emerald-800">
+            Candidate test data was deleted. The same email can now reapply for the same role.
+          </SurfaceCard>
         ) : null}
         <AdminFilterBar roles={roles} filters={filters} />
       </div>
@@ -62,6 +60,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <div className="mt-8">
         <AdminCandidateTable rows={rows} />
       </div>
-    </section>
+    </PublicContainer>
   );
 }

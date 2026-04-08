@@ -1,8 +1,8 @@
 /**
- * Phase 06 non-admin Slack invite fallback. Slack admin invite APIs are often
- * unavailable in prototype workspaces, so a configured workspace invite link
- * lets the candidate receive a real onboarding email while Slack lookup and
- * messaging remain real API-driven after they join.
+ * Non-admin Slack invite fallback. Slack admin invite APIs are often unavailable
+ * in regular workspaces, so a configured workspace invite link lets the
+ * candidate receive a real onboarding email while Slack lookup and messaging
+ * remain API-driven after they join.
  */
 import { Resend } from "resend";
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";

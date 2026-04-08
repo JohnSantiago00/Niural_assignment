@@ -12,8 +12,7 @@ const optionalText = z
   .nullable();
 
 // Education and employer history are stored as structured objects so the admin
-// UI can render resume evidence more clearly and future phases can extend these
-// sections without reparsing free-form strings.
+// UI can render resume evidence without reparsing free-form strings.
 export const educationEntrySchema = z.object({
   institution: z.string().trim().min(1).max(200),
   degree: optionalText,

@@ -12,7 +12,6 @@ import { requireAdminUser } from "@/lib/auth/authorization";
 import { runCandidateEnrichmentAction } from "@/lib/enrichment/actions";
 import { isCandidateEligibleForEnrichment } from "@/lib/enrichment/run-enrichment";
 import {
-  saveInterviewFeedbackAction,
   simulateInterviewCompleteAction
 } from "@/lib/interview/actions";
 import {
@@ -311,10 +310,6 @@ function getFlashMessages(params: Awaited<CandidateDetailPageProps["searchParams
     messages.push({ tone: "error", message: cleanAdminErrorMessage(params.interviewError) });
   }
 
-  if (params.feedback === "saved") {
-    messages.push({ tone: "success", message: "Interview feedback saved." });
-  }
-
   if (params.feedbackError) {
     messages.push({ tone: "error", message: params.feedbackError });
   }
@@ -383,7 +378,7 @@ function FlashMessages({ messages }: { messages: FlashMessage[] }) {
       {messages.map((message) => (
         <div
           key={`${message.tone}-${message.message}`}
-          className={`rounded-2xl border px-4 py-3 text-sm ${toneClasses[message.tone]}`}
+          className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${toneClasses[message.tone]}`}
         >
           {message.message}
         </div>
@@ -404,7 +399,7 @@ function SectionCard({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[1.75rem] border border-line bg-white p-6 shadow-sm">
+    <section className="rounded-[2rem] border border-line/70 bg-white/85 p-6 shadow-soft backdrop-blur">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           {eyebrow ? (
@@ -412,7 +407,7 @@ function SectionCard({
               {eyebrow}
             </p>
           ) : null}
-          <h2 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.035em] text-ink">{title}</h2>
         </div>
         {action}
       </div>
@@ -431,9 +426,9 @@ function MiniStat({
   helper?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-line bg-panel px-4 py-3">
+    <div className="min-w-0 rounded-2xl border border-line/70 bg-hero/60 px-4 py-3 shadow-sm">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
-      <div className="mt-2 text-sm font-medium text-slate-900 [overflow-wrap:anywhere]">
+      <div className="mt-2 text-sm font-semibold text-ink [overflow-wrap:anywhere]">
         {value}
       </div>
       {helper ? (
@@ -455,7 +450,7 @@ function TagList({ items }: { items: string[] }) {
       {items.map((item) => (
         <span
           key={item}
-          className="rounded-full border border-line bg-panel px-3 py-1 text-xs font-medium text-slate-700"
+          className="rounded-full border border-line/70 bg-white/75 px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm"
         >
           {item}
         </span>
@@ -472,7 +467,7 @@ function InsightList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2">
       {items.map((item) => (
-        <li key={item} className="rounded-2xl bg-panel px-4 py-3 text-sm leading-6 text-slate-700">
+        <li key={item} className="rounded-2xl bg-hero/70 px-4 py-3 text-sm leading-6 text-slate-700">
           {item}
         </li>
       ))}
@@ -483,7 +478,7 @@ function InsightList({ items }: { items: string[] }) {
 function ExternalLink({ label, href }: { label: string; href: string | null }) {
   if (!href) {
     return (
-      <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+      <div className="rounded-2xl border border-line/70 bg-hero/60 px-4 py-3 shadow-sm">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
         <p className="mt-2 text-sm text-slate-500">Not provided</p>
       </div>
@@ -491,7 +486,7 @@ function ExternalLink({ label, href }: { label: string; href: string | null }) {
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-panel px-4 py-3">
+    <div className="rounded-2xl border border-line/70 bg-hero/60 px-4 py-3 shadow-sm">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
       <a
         href={href}
@@ -515,64 +510,66 @@ function CandidateHero({
   interviewStatus: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-line bg-slate-950 text-white shadow-card">
-      <div className="bg-[radial-gradient(circle_at_top_left,rgba(116,170,255,0.28),transparent_35%),linear-gradient(135deg,#0f172a,#1e293b_62%,#334155)] p-8">
+    <div className="relative overflow-hidden rounded-[2.5rem] border border-line/70 bg-hero shadow-soft">
+      <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-accent/15 blur-3xl" />
+      <div className="absolute -bottom-28 left-1/3 h-80 w-80 rounded-full bg-gold/20 blur-3xl" />
+      <div className="relative p-8 sm:p-10 lg:p-12">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Link href="/admin" className="text-sm font-medium text-slate-300 hover:text-white">
+            <Link href="/admin" className="text-sm font-semibold text-slate-600 hover:text-accent">
               Back to dashboard
             </Link>
-            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-sky-200">
+            <p className="mt-8 text-sm font-bold uppercase tracking-[0.22em] text-accent">
               {detail.role.title}
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-ink md:text-5xl">
               {detail.candidate.full_name}
             </h1>
-            <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
+            <div className="mt-5 flex flex-wrap gap-3 text-sm font-medium text-slate-600">
               <span>{detail.candidate.email}</span>
-              <span className="text-slate-500">/</span>
+              <span className="text-slate-300">/</span>
               <span>{detail.role.team}</span>
-              <span className="text-slate-500">/</span>
+              <span className="text-slate-300">/</span>
               <span>Applied {formatDate(detail.application.submitted_at)}</span>
             </div>
           </div>
 
           <div className="grid min-w-[18rem] gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Workflow stage</p>
+            <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm backdrop-blur">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Workflow stage</p>
               <div className="mt-3">
                 <StatusBadge status={status} />
               </div>
             </div>
-            <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Interview</p>
-              <p className="mt-3 text-sm font-semibold text-white">{interviewStatus}</p>
+            <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm backdrop-blur">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Interview</p>
+              <p className="mt-3 text-sm font-semibold text-ink">{interviewStatus}</p>
             </div>
           </div>
         </div>
 
         <div className="mt-8 grid gap-3 md:grid-cols-4">
-          <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">AI score</p>
-            <p className="mt-2 text-2xl font-semibold text-white">
+          <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">AI score</p>
+            <p className="mt-2 text-2xl font-semibold text-ink">
               {formatAiScore(detail.candidate.ai_score)}
             </p>
           </div>
-          <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Recommendation</p>
-            <p className="mt-2 text-sm font-semibold text-white">{getShortlistCopy(detail)}</p>
+          <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Recommendation</p>
+            <p className="mt-2 text-sm font-semibold text-ink">{getShortlistCopy(detail)}</p>
           </div>
-          <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Profile research</p>
-            <p className="mt-2 text-sm font-semibold text-white">
+          <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Profile research</p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {detail.researchProfile
                 ? getConfidenceLabel(detail.researchProfile.confidence_score)
                 : "Pending research"}
             </p>
           </div>
-          <div className="rounded-3xl border border-white/15 bg-white/10 px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Offer</p>
-            <p className="mt-2 text-sm font-semibold text-white">
+          <div className="rounded-3xl border border-line/70 bg-white/75 px-5 py-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Offer</p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {detail.offer ? getOfferStatusLabel(detail.offer.offer_status) : "Not started"}
             </p>
           </div>
@@ -601,7 +598,7 @@ function ActionRail({
 }) {
   return (
     <aside className="space-y-5 xl:sticky xl:top-6">
-      <section className="rounded-[1.75rem] border border-line bg-white p-5 shadow-sm">
+      <section className="rounded-[2rem] border border-line/70 bg-white/85 p-5 shadow-soft backdrop-blur">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
           Next actions
         </p>
@@ -609,7 +606,7 @@ function ActionRail({
           <form action={runCandidateScreeningAction.bind(null, detail.candidate.id)}>
             <button
               type="submit"
-              className="w-full rounded-full border border-line px-5 py-3 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-950"
+              className="w-full rounded-full border border-line/80 bg-white/80 px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-soft"
             >
               {detail.screeningResult ? "Refresh screening" : "Run screening"}
             </button>
@@ -619,13 +616,13 @@ function ActionRail({
             <form action={runCandidateEnrichmentAction.bind(null, detail.candidate.id)}>
               <button
                 type="submit"
-                className="w-full rounded-full border border-line px-5 py-3 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-950"
+                className="w-full rounded-full border border-line/80 bg-white/80 px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-soft"
               >
                 {detail.researchProfile ? "Refresh enrichment" : "Run enrichment"}
               </button>
             </form>
           ) : (
-            <p className="rounded-2xl bg-panel px-4 py-3 text-sm leading-6 text-slate-500">
+            <p className="rounded-2xl bg-hero/70 px-4 py-3 text-sm leading-6 text-slate-500">
               Enrichment unlocks after shortlist.
             </p>
           )}
@@ -634,7 +631,7 @@ function ActionRail({
             <form action={offerInterviewSlotsAction.bind(null, detail.candidate.id)}>
               <button
                 type="submit"
-                className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark"
+                className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-glow"
               >
                 {activeHolds.length > 0 || expiredHoldCount > 0
                   ? "Refresh interview slots"
@@ -646,9 +643,9 @@ function ActionRail({
           {canSimulateInterview ? (
             <form action={simulateInterviewCompleteAction.bind(null, detail.candidate.id)}>
               <button
-                type="submit"
-                className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-              >
+              type="submit"
+              className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-accentDark"
+            >
                 Simulate interview complete
               </button>
             </form>
@@ -656,7 +653,7 @@ function ActionRail({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-line bg-white p-5 shadow-sm">
+      <section className="rounded-[2rem] border border-line/70 bg-white/85 p-5 shadow-soft backdrop-blur">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
           Compact status
         </p>
@@ -678,7 +675,7 @@ function ActionRail({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-line bg-white p-5 shadow-sm">
+      <section className="rounded-[2rem] border border-line/70 bg-white/85 p-5 shadow-soft backdrop-blur">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
           Profile links
         </p>
@@ -701,7 +698,7 @@ function HiringDecisionSummary({ detail }: { detail: CandidateDetailView }) {
 
   return (
     <SectionCard title="Hiring decision summary" eyebrow="Review focus">
-      <div className="rounded-3xl bg-panel p-5">
+      <div className="rounded-3xl bg-hero/70 p-5">
         <p className="text-base leading-8 text-slate-800">{primarySummary}</p>
       </div>
 
@@ -734,10 +731,12 @@ function HiringDecisionSummary({ detail }: { detail: CandidateDetailView }) {
 function SchedulingSummary({
   detail,
   confirmedHold,
+  activeHolds,
   isRescheduleRequested
 }: {
   detail: CandidateDetailView;
   confirmedHold: CalendarHoldRecord | null;
+  activeHolds: CalendarHoldRecord[];
   isRescheduleRequested: boolean;
 }) {
   return (
@@ -771,7 +770,7 @@ function SchedulingSummary({
           </div>
 
           {isRescheduleRequested ? (
-            <div className="rounded-3xl border border-line bg-panel p-5">
+            <div className="rounded-3xl border border-line/70 bg-hero/60 p-5 shadow-sm">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-950">Reschedule requested</p>
@@ -783,24 +782,47 @@ function SchedulingSummary({
                   <form action={regenerateRescheduleSuggestionsAction.bind(null, detail.candidate.id)}>
                     <button
                       type="submit"
-                      className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                      className="rounded-full border border-line/80 bg-white/80 px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300"
                     >
                       Regenerate suggestions
                     </button>
                   </form>
-                  <form action={approveRescheduleSlotsAction.bind(null, detail.candidate.id)}>
-                    <button
-                      type="submit"
-                      className="rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accentDark"
-                    >
-                      Approve and send
-                    </button>
-                  </form>
+                  {activeHolds.length > 0 ? (
+                    <form action={approveRescheduleSlotsAction.bind(null, detail.candidate.id)}>
+                      <button
+                        type="submit"
+                        className="rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800"
+                      >
+                        Approve and send
+                      </button>
+                    </form>
+                  ) : null}
                 </div>
               </div>
 
+              {activeHolds.length > 0 ? (
+                <div className="mt-5 rounded-2xl border border-line/70 bg-white/80 px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-950">Replacement options ready</p>
+                  <div className="mt-3 grid gap-2">
+                    {activeHolds.map((hold) => (
+                      <div
+                        key={hold.id}
+                        className="rounded-2xl bg-hero/70 px-4 py-3 text-sm leading-6 text-slate-700"
+                      >
+                        <p className="font-semibold text-ink">
+                          {formatScheduleWindow(hold.slot_start, hold.slot_end)}
+                        </p>
+                        <p className="text-slate-600">
+                          {hold.interviewer_name} · Reserved until {formatDateTime(hold.expires_at)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {detail.interview.reschedule_preferences ? (
-                <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                <div className="mt-5 rounded-2xl border border-line/70 bg-white/80 px-4 py-3 text-sm leading-6 text-slate-700">
                   <p className="font-semibold text-slate-950">Preference summary</p>
                   <p className="mt-1">{detail.interview.reschedule_preferences.notes_summary}</p>
                 </div>
@@ -823,10 +845,10 @@ function InterviewIntelligence({ detail }: { detail: CandidateDetailView }) {
   }
 
   return (
-    <SectionCard title="Interview intelligence" eyebrow="Phase 04">
+    <SectionCard title="Interview intelligence" eyebrow="Interview signal">
       {detail.interviewTranscript ? (
         <div className="space-y-5">
-          <div className="rounded-3xl bg-panel p-5">
+          <div className="rounded-3xl bg-hero/70 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Summary
             </p>
@@ -857,7 +879,7 @@ function InterviewIntelligence({ detail }: { detail: CandidateDetailView }) {
             </div>
           </div>
 
-          <details className="rounded-2xl border border-line bg-panel px-5 py-4">
+          <details className="rounded-2xl border border-line/70 bg-hero/60 px-5 py-4">
             <summary className="cursor-pointer text-sm font-semibold text-slate-900">
               Transcript preview
             </summary>
@@ -879,73 +901,13 @@ function InterviewIntelligence({ detail }: { detail: CandidateDetailView }) {
   );
 }
 
-function InterviewFeedbackPanel({ detail }: { detail: CandidateDetailView }) {
-  if (detail.interview?.interview_status !== "completed") {
-    return null;
-  }
-
-  return (
-    <SectionCard title="Interview feedback" eyebrow="Reviewer input">
-      <form
-        action={saveInterviewFeedbackAction.bind(null, detail.candidate.id)}
-        className="grid gap-5 lg:grid-cols-[0.35fr_0.65fr]"
-      >
-        <div>
-          <label htmlFor="interview-rating" className="text-sm font-semibold text-slate-900">
-            Rating
-          </label>
-          <select
-            id="interview-rating"
-            name="rating"
-            defaultValue={detail.interviewFeedback?.rating ?? 4}
-            className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
-          >
-            <option value="1">1 - Strong no</option>
-            <option value="2">2 - Concerns</option>
-            <option value="3">3 - Mixed</option>
-            <option value="4">4 - Positive</option>
-            <option value="5">5 - Strong yes</option>
-          </select>
-          {detail.interviewFeedback ? (
-            <p className="mt-3 text-xs leading-5 text-slate-500">
-              Last saved {formatDateTime(detail.interviewFeedback.submitted_at)}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="interview-comments" className="text-sm font-semibold text-slate-900">
-            Comments
-          </label>
-          <textarea
-            id="interview-comments"
-            name="comments"
-            rows={4}
-            defaultValue={detail.interviewFeedback?.comments ?? ""}
-            className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
-            placeholder="Summarize feedback and recommended next step."
-          />
-          <div className="mt-3 flex justify-end">
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark"
-            >
-              Save feedback
-            </button>
-          </div>
-        </div>
-      </form>
-    </SectionCard>
-  );
-}
-
 function OfferPanel({ detail }: { detail: CandidateDetailView }) {
   const eligible = isOfferEligible(detail);
   const defaultTitle = detail.offer?.confirmed_job_title ?? detail.role.title;
   const minimumStartDate = getNextDateInputValue(detail.interviewTranscript?.completed_at);
 
   return (
-    <SectionCard title="Offer" eyebrow="Phase 05">
+    <SectionCard title="Offer" eyebrow="Offer workflow">
       {!eligible ? (
         <p className="text-sm leading-6 text-slate-500">
           Offer generation becomes available after the interview is completed.
@@ -968,7 +930,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
           </div>
 
           {detail.offer?.offer_status !== "signed" ? (
-          <div className="rounded-3xl border border-line bg-panel p-5">
+          <div className="rounded-3xl border border-line/70 bg-hero/60 p-5 shadow-sm">
             <div>
               <p className="text-sm font-semibold text-slate-950">Send offer</p>
               <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -984,7 +946,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                 <input
                   name="confirmedJobTitle"
                   defaultValue={defaultTitle}
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </label>
               <label>
@@ -994,7 +956,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                   type="date"
                   min={minimumStartDate}
                   defaultValue={detail.offer?.start_date ?? ""}
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
                 {minimumStartDate ? (
                   <span className="mt-1 block text-xs text-slate-500">
@@ -1008,7 +970,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                   name="baseSalary"
                   defaultValue={detail.offer?.base_salary ?? ""}
                   placeholder="$120,000"
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </label>
               <label>
@@ -1019,7 +981,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                   name="equityOrBonus"
                   defaultValue={detail.offer?.equity_or_bonus ?? ""}
                   placeholder="Optional"
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </label>
               <label>
@@ -1027,7 +989,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                 <input
                   name="reportingManager"
                   defaultValue={detail.offer?.reporting_manager ?? ""}
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </label>
               <label className="md:col-span-2">
@@ -1037,13 +999,13 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
                   rows={3}
                   defaultValue={detail.offer?.custom_terms ?? ""}
                   placeholder="Optional offer-specific terms to include."
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+                  className="mt-2 w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </label>
               <div className="md:col-span-2">
                 <button
                   type="submit"
-                  className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark"
+                  className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800"
                 >
                   Send offer
                 </button>
@@ -1053,7 +1015,7 @@ function OfferPanel({ detail }: { detail: CandidateDetailView }) {
           ) : null}
 
           {detail.offer ? (
-            <div className="rounded-3xl border border-line bg-panel p-5">
+            <div className="rounded-3xl border border-line/70 bg-hero/60 p-5 shadow-sm">
               <p className="text-sm font-semibold text-slate-950">Offer delivery</p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <MiniStat label="Recipient" value={detail.offer.offer_email_recipient ?? detail.candidate.email} />
@@ -1091,7 +1053,7 @@ function SlackOnboardingPanel({ detail }: { detail: CandidateDetailView }) {
   const onboarding = detail.slackOnboarding;
 
   return (
-    <SectionCard title="Slack onboarding" eyebrow="Phase 06">
+    <SectionCard title="Slack onboarding" eyebrow="Onboarding">
       {!onboarding ? (
         <p className="text-sm leading-6 text-slate-500">
           Slack onboarding starts automatically after the offer is signed.
@@ -1137,7 +1099,7 @@ function SlackOnboardingPanel({ detail }: { detail: CandidateDetailView }) {
           ) : null}
 
           {onboarding.onboarding_status !== "completed" ? (
-            <div className="rounded-2xl border border-line bg-slate-50 p-4">
+            <div className="rounded-2xl border border-line/70 bg-hero/60 p-4 shadow-sm">
               <p className="text-sm font-semibold text-slate-950">
                 Ready after the candidate joins Slack
               </p>
@@ -1149,7 +1111,7 @@ function SlackOnboardingPanel({ detail }: { detail: CandidateDetailView }) {
               <form className="mt-4" action={checkSlackJoinAction.bind(null, detail.candidate.id)}>
                 <button
                   type="submit"
-                  className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accentDark"
+                  className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800"
                 >
                   Check Slack and send welcome
                 </button>
@@ -1167,7 +1129,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
     <SectionCard title="Candidate intelligence" eyebrow="Screening & enrichment">
       <div className="space-y-6">
         {detail.researchProfile ? (
-          <div className="rounded-3xl border border-line bg-panel p-5">
+          <div className="rounded-3xl border border-line/70 bg-hero/60 p-5 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -1177,7 +1139,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
                   {detail.researchProfile.candidate_brief}
                 </p>
               </div>
-              <div className="shrink-0 rounded-2xl bg-white px-4 py-3">
+              <div className="shrink-0 rounded-2xl border border-line/70 bg-white/80 px-4 py-3 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Source confidence
                 </p>
@@ -1204,7 +1166,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
             </div>
           </div>
         ) : (
-          <p className="rounded-3xl bg-panel p-5 text-sm leading-6 text-slate-500">
+          <p className="rounded-3xl bg-hero/70 p-5 text-sm leading-6 text-slate-500">
             Run screening to generate fit score, rationale, strengths, and gaps.
           </p>
         )}
@@ -1214,7 +1176,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
             <p className="mb-3 text-sm font-semibold text-slate-950">Discrepancy review</p>
             <div className="space-y-3">
               {detail.researchProfile.discrepancy_flags.map((item) => (
-                <div key={`${item.type}-${item.description}`} className="rounded-2xl bg-panel px-4 py-3">
+                <div key={`${item.type}-${item.description}`} className="rounded-2xl bg-hero/70 px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${getDiscrepancySeverityClasses(item.severity)}`}
@@ -1232,7 +1194,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
           </div>
         ) : null}
 
-        <details className="rounded-2xl border border-line bg-white px-5 py-4">
+        <details className="rounded-2xl border border-line/70 bg-white/80 px-5 py-4 shadow-sm">
           <summary className="cursor-pointer text-sm font-semibold text-slate-900">
             Source summaries and extracted details
           </summary>
@@ -1279,7 +1241,7 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
                 </div>
                 <div>
                   <p className="mb-3 text-sm font-semibold text-slate-950">Screening rationale</p>
-                  <p className="rounded-2xl bg-panel px-4 py-3 text-sm leading-6 text-slate-700">
+                  <p className="rounded-2xl bg-hero/70 px-4 py-3 text-sm leading-6 text-slate-700">
                     {detail.screeningResult.rationale}
                   </p>
                 </div>
@@ -1294,15 +1256,15 @@ function CandidateIntelligence({ detail }: { detail: CandidateDetailView }) {
 
 function ActivityTimeline({ detail }: { detail: CandidateDetailView }) {
   return (
-    <section className="rounded-[1.75rem] border border-line bg-white p-6 shadow-sm">
+    <section className="rounded-[2rem] border border-line/70 bg-white/85 p-6 shadow-soft backdrop-blur">
       <details>
         <summary className="cursor-pointer list-none">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             Audit trail
           </p>
           <div className="mt-1 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-950">Activity</h2>
-            <span className="rounded-full bg-panel px-3 py-1 text-xs font-semibold text-slate-600">
+            <h2 className="text-xl font-semibold tracking-[-0.035em] text-ink">Activity</h2>
+            <span className="rounded-full border border-line/70 bg-hero/70 px-3 py-1 text-xs font-semibold text-slate-600">
               {detail.auditLogs.length} events
             </span>
           </div>
@@ -1316,7 +1278,7 @@ function ActivityTimeline({ detail }: { detail: CandidateDetailView }) {
               {detail.auditLogs.map((log) => (
                 <li
                   key={log.id}
-                  className="grid gap-4 rounded-2xl bg-panel px-4 py-3 md:grid-cols-[0.25fr_0.75fr]"
+                  className="grid gap-4 rounded-2xl bg-hero/70 px-4 py-3 md:grid-cols-[0.25fr_0.75fr]"
                 >
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     {formatDateTime(log.created_at)}
@@ -1355,7 +1317,7 @@ function SecondaryAdminTools({ detail }: { detail: CandidateDetailView }) {
               id="decision"
               name="decision"
               defaultValue="shortlist"
-              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+              className="w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
             >
               <option value="shortlist">Shortlist candidate</option>
               <option value="do_not_shortlist">Do not shortlist</option>
@@ -1370,12 +1332,12 @@ function SecondaryAdminTools({ detail }: { detail: CandidateDetailView }) {
               name="note"
               rows={4}
               defaultValue={detail.candidate.admin_override_note ?? ""}
-              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-slate-700"
+              className="w-full rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
             />
           </div>
           <button
             type="submit"
-            className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark"
+            className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
             Save override
           </button>
@@ -1385,7 +1347,7 @@ function SecondaryAdminTools({ detail }: { detail: CandidateDetailView }) {
       <SectionCard title="Application details" eyebrow="Record">
         <div className="grid gap-3">
           <MiniStat label="Submitted" value={formatDateTime(detail.application.submitted_at)} />
-          <details className="rounded-2xl border border-line bg-panel px-4 py-3">
+          <details className="rounded-2xl border border-line/70 bg-hero/60 px-4 py-3 shadow-sm">
             <summary className="cursor-pointer text-sm font-semibold text-slate-900">
               Record identifiers
             </summary>
@@ -1416,10 +1378,10 @@ function SecondaryAdminTools({ detail }: { detail: CandidateDetailView }) {
 
 function DangerZone({ detail }: { detail: CandidateDetailView }) {
   return (
-    <section className="rounded-[1.75rem] border border-rose-200 bg-rose-50 p-6">
+    <section className="rounded-[2rem] border border-rose-200 bg-rose-50/90 p-6 shadow-soft">
       <h2 className="text-lg font-semibold text-rose-950">Danger zone</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-rose-900">
-        Permanently delete this QA candidate and all related application, AI,
+        Permanently delete this candidate and all related application, AI,
         scheduling, interview, audit, and resume storage data.
       </p>
       <form
@@ -1432,14 +1394,14 @@ function DangerZone({ detail }: { detail: CandidateDetailView }) {
           </span>
           <input
             name="confirmation"
-            className="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-rose-950 outline-none focus:border-rose-400"
+            className="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-rose-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-200/60"
             placeholder="DELETE"
             autoComplete="off"
           />
         </label>
         <button
           type="submit"
-          className="rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white hover:bg-rose-700"
+          className="rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-rose-700"
         >
           Delete test candidate
         </button>
@@ -1481,7 +1443,7 @@ export default async function CandidateDetailPage({
     : "Not scheduled";
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-12">
+    <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
       <FlashMessages messages={getFlashMessages(resolvedSearchParams)} />
 
       <CandidateHero detail={detail} status={status} interviewStatus={interviewStatus} />
@@ -1492,10 +1454,10 @@ export default async function CandidateDetailPage({
           <SchedulingSummary
             detail={detail}
             confirmedHold={confirmedHold}
+            activeHolds={activeHolds}
             isRescheduleRequested={isRescheduleRequested}
           />
           <InterviewIntelligence detail={detail} />
-          <InterviewFeedbackPanel detail={detail} />
           <OfferPanel detail={detail} />
           <SlackOnboardingPanel detail={detail} />
           <CandidateIntelligence detail={detail} />

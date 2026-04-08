@@ -1,128 +1,74 @@
-# Phase 02C Enrichment Notes
+# Phase 02 Enrichment Notes
 
-## Why enrichment comes after screening
+Enrichment adds candidate context after screening and shortlisting.
 
-Screening and enrichment solve different problems.
+## Why Enrichment Comes After Screening
 
-- screening answers: "Is this resume a plausible fit for the role?"
-- enrichment answers: "What extra context can we gather for already shortlisted candidates?"
+Screening answers:
 
-Keeping them separate makes the system easier to explain and prevents online
-research from affecting the initial fit decision.
+```text
+Is this resume a plausible fit for the applied role?
+```
 
-## Why enrichment is limited to shortlisted candidates
+Enrichment answers:
 
-Phase 02C is intentionally gated in deterministic app logic.
+```text
+What extra context can we gather for an already-shortlisted candidate?
+```
 
-Only candidates with `current_status = shortlisted` can be enriched. That means:
+Keeping them separate prevents online profile availability from controlling the initial fit decision.
 
-- the UI only offers enrichment for shortlisted candidates
-- the server workflow rejects enrichment for non-shortlisted candidates
-- AI never decides who is eligible for enrichment
+## Eligibility
 
-This keeps resource usage focused and makes the workflow easier to defend in an
-interview.
+Enrichment is gated in deterministic app logic:
 
-## What sources were used
+- UI only exposes enrichment for shortlisted candidates.
+- Server workflow rejects enrichment for non-shortlisted candidates.
+- Gemini never decides enrichment eligibility.
 
-This MVP uses the candidate-submitted links first:
+## Sources
+
+The app uses candidate-submitted profile links:
 
 - LinkedIn URL
 - GitHub URL
 - portfolio URL
 
-X/Twitter is included in the schema as an optional future field, but it is not
-actively used in this MVP unless that URL is added later.
+The app does not claim official LinkedIn/GitHub partner API access. It performs lightweight source fetching where public access works and records limitations where it does not.
 
-## How source retrieval works
+## LinkedIn and Source Limitations
 
-The app performs lightweight server-side fetches of the candidate-submitted URLs
-and extracts lightweight readable text plus page title/description from the
-returned HTML.
+LinkedIn often blocks automated public fetches. The app handles that honestly:
 
-LinkedIn is handled with a layered strategy because direct automated access is
-not consistently reliable:
+- try direct fetch
+- if blocked/unavailable, record a source limitation
+- preserve the submitted URL for manual review
+- do not treat blocked access as a discrepancy
 
-1. try direct fetch of the submitted LinkedIn URL
-2. if LinkedIn blocks access or public content is limited, keep the enrichment run successful but record that LinkedIn automation was blocked and the submitted URL remains available for manual review
+## Discrepancy Rules
 
-This is intentionally simple:
+Discrepancy flags are conservative. They should only appear when available evidence clearly suggests a mismatch.
 
-- no official third-party integrations
-- no login-dependent scraping
-- no giant crawling workflow
-
-If a page is missing, blocked, or unavailable, the enrichment result reflects
-that limitation instead of inventing findings.
-
-## LinkedIn limitation and MVP tradeoff
-
-LinkedIn commonly blocks bot-like requests and can return HTTP 999 or similar
-anti-automation responses. For this take-home MVP, the app does not attempt
-browser automation, fallback search APIs, or unofficial scraping hacks.
-
-Instead, it uses:
-
-- direct fetch when public access works
-- clear UI messaging when automated enrichment is blocked
-
-A more production-ready version would likely use a licensed data provider,
-an approved partner integration, or a user-assisted workflow rather than
-pretending public scraping is reliable.
-
-## How discrepancies are handled conservatively
-
-The enrichment prompt explicitly tells Gemini to flag discrepancies only when
-the available evidence suggests a clear mismatch.
-
-The stored discrepancy flags are structured objects with:
-
-- `type`
-- `severity`
-- `description`
-- `source`
-
-It should not create discrepancy flags just because:
+They should not appear simply because:
 
 - a source is missing
-- a page is blocked
-- an online profile contains less detail than the resume
+- a site blocks access
+- a profile has less detail than the resume
 
-## Confidence score
+## Stored Output
 
-Enrichment also stores a `confidence_score` from 0 to 100.
+`research_profiles` stores:
 
-This score reflects enrichment quality, not candidate quality. It should
-capture:
+- submitted source URLs used
+- source summaries
+- candidate brief
+- discrepancy flags
+- LinkedIn source status/note
+- confidence score
+- model name
 
-- how many usable sources were available
-- how internally consistent those sources were
-- how much readable evidence the system could actually gather
+The confidence score reflects enrichment quality, not candidate quality.
 
-## Gemini migration
+## Why This Is Enough
 
-This version uses the official Google Gemini Developer API SDK instead of the
-earlier model integration.
-
-That keeps the AI layer current while preserving the same app-level guarantees:
-
-- structured output
-- Zod validation before writes
-- deterministic workflow rules in application code
-
-## MVP limitations
-
-- some sites, especially LinkedIn, may block or limit readable public fetches
-- fetched HTML is reduced to simple readable text rather than full structured parsing
-- X/Twitter is not fully supported in this MVP
-- enrichment is manual rather than queued/background processed
-
-## What later phases build on
-
-After enrichment, the later-stage workflow builds on shortlisted candidates with:
-
-- scheduling
-- interview support
-- transcripts / notes
-- offers / signing
-- onboarding handoff
+This design gives admins useful context without pretending the app has high-confidence identity graph data. It stays conservative, source-bound, and clear about confidence.

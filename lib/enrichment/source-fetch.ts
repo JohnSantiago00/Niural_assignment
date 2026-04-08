@@ -1,7 +1,7 @@
 /**
- * Lightweight source retrieval for Phase 02C. We use the candidate-submitted
- * URLs first and fetch plain page content conservatively, without trying to
- * build full third-party integrations or brittle scraping flows.
+ * Lightweight source retrieval for candidate enrichment. The app uses
+ * candidate-submitted URLs first and fetches plain page content conservatively,
+ * avoiding brittle scraping flows or unverified third-party profile claims.
  */
 type EnrichmentSourceKind = "linkedin" | "github" | "portfolio" | "x";
 export type EnrichmentSourceStatus =

@@ -8,6 +8,10 @@
 
 body {
   @apply bg-canvas text-ink antialiased;
+  background-image:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 30rem),
+    radial-gradient(circle at top right, rgba(216, 161, 61, 0.12), transparent 26rem);
+  font-feature-settings: "ss01" on, "cv01" on;
 }
 
 a {
@@ -20,3 +24,6 @@ textarea {
   @apply outline-none;
 }
 
+::selection {
+  @apply bg-accent text-white;
+}

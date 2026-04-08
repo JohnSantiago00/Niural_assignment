@@ -1,7 +1,7 @@
 /**
- * Shared Phase A validation rules. The client schema keeps the form responsive,
- * while the server schema remains the source of truth for any actual write to
- * Supabase.
+ * Shared application validation rules. The client schema keeps the form
+ * responsive, while the server schema remains the source of truth for any
+ * actual write to Supabase.
  */
 import { ZodError, z } from "zod";
 import { MAX_RESUME_SIZE_BYTES, isSupportedResumeFile } from "@/lib/utils/resume";

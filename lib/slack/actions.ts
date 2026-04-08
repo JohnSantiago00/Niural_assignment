@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Admin-only Phase 06 retry/check action. It performs a real Slack lookup by
+ * Admin-only Slack retry/check action. It performs a real Slack lookup by
  * candidate email and only sends welcome/HR messages when Slack confirms the
  * user exists in the workspace.
  */

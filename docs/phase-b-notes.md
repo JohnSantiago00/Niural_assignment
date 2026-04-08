@@ -1,147 +1,96 @@
-# Phase B Notes
+# Phase 02 Admin Review Notes
 
-## What Phase B adds
+Phase 02 adds the internal admin review layer on top of public application intake.
 
-Phase B adds the internal admin read layer on top of the public intake flow built in Phase A.
+## What This Layer Provides
 
-The system now supports:
+- `/admin` dashboard
+- filterable candidate table
+- `/admin/candidates/[candidateId]` candidate workspace
+- status badges and workflow filters
+- candidate/application/role/audit visibility
+- screening, enrichment, scheduling, interview, offer, and Slack sections as later phases become available
 
-- an internal `/admin` dashboard
-- a filterable candidate table
-- a candidate profile page at `/admin/candidates/[candidateId]`
-- clear workflow status rendering
-- combined visibility into candidate, application, role, and audit data
+## Why It Matters
 
-## Why the admin dashboard matters
+Application intake alone is not operationally useful. Hiring teams need one place to:
 
-Phase A only gets candidates into the system. Phase B makes that intake operationally useful.
+- scan candidates quickly
+- filter by role or workflow stage
+- inspect evidence and audit history
+- run actions in the right phase
+- understand what happened next
 
-Once applications exist, internal teammates need a single place to:
+The admin UI is the control plane for the rest of the pipeline.
 
-- scan incoming candidates quickly
-- filter the queue by role or status
-- open one candidate and review the full application context
-- understand where that person is in the hiring lifecycle
-
-This is the minimum internal tool that turns intake data into a working hiring workflow.
-
-## Data flow from DB to dashboard
-
-The dashboard reads from existing Phase A tables only:
-
-- `candidates`
-- `applications`
-- `roles`
-- `audit_logs`
-
-### Dashboard
+## Current Dashboard
 
 The `/admin` page:
 
-1. reads URL-based filters
-2. fetches matching `candidates`
-3. loads related `roles` and `applications`
-4. assembles a small row view model for the table
+1. reads URL-driven filters
+2. fetches candidates
+3. joins role/application/screening context
+4. renders a scannable table
+5. links each row to the candidate workspace
 
-This keeps the page component simple and keeps query logic centralized in `lib/admin/queries.ts`.
+Candidate rows show:
 
-### Candidate detail
-
-The `/admin/candidates/[candidateId]` page:
-
-1. loads one candidate
-2. fetches the related application
-3. fetches the related role
-4. fetches that candidate's audit logs
-5. renders everything as one review page
-
-## Why explicit statuses matter now
-
-Phase B introduced explicit lifecycle rendering around `current_status` before the later workflow phases were added.
-
-This matters because:
-
-- the admin UI already needs a consistent workflow vocabulary
-- filters become meaningful immediately
-- later automation can plug into known states instead of inventing them later
-- interviews are easier because the workflow model is visible now
-
-Current statuses include:
-
-- applied
-- screened
-- shortlisted
-- interview_pending
-- interview_scheduled
-- interview_completed
-- offer_drafted
-- offer_sent
-- offer_signed
-- onboarded
-- rejected
-
-## How this sets up Phase C
-
-Phase C can add AI screening without changing the admin structure.
-
-For example:
-
-- AI scoring can appear on the candidate detail page where the placeholder fields already exist
-- AI outputs can influence `current_status`
-- review filters can expand around score thresholds or review queues
-- audit logs can capture automated transitions or scoring events
-
-The important point is that Phase B creates the operational review surface first, so later intelligence has somewhere useful to land.
-
-## Phase B alignment work completed
-
-This follow-up pass closes the small remaining gaps between the dashboard and the assignment expectations.
-
-### AI score now appears in the dashboard table
-
-The admin table now includes an `AI Score` column even before screening exists.
-
-Why:
-
-- the assignment expects the review table to include AI score
-- adding the column now makes the future screening rollout feel additive instead of disruptive
-- operators can already see whether a candidate has been scored or not
-
-For now, candidates with no score render as `Not scored`.
-
-### Date filtering is now supported
-
-The dashboard filter bar now includes:
-
+- name and email
 - role
 - status
-- from date
-- to date
-- sort
+- score/recommendation when available
+- applied date
+- clear `View profile` action
 
-The date filters are URL-driven just like the rest of the dashboard state. That keeps the page deterministic, shareable, and easy to explain.
+## Current Candidate Detail Page
 
-### Admin navigation feels internal
+The candidate detail page is organized around workflow sections:
 
-On admin pages, the global nav no longer shows `Apply`.
+1. Hiring decision summary
+2. Scheduling / interview
+3. Interview intelligence
+4. Offer
+5. Slack onboarding
+6. Candidate intelligence
+7. Activity / audit
+8. Admin controls and danger zone
 
-That matters because:
+This keeps late-stage candidates readable without turning the page into a raw debug dump.
 
-- `Apply` is part of the candidate-facing flow
-- the admin area should feel like an operator tool
-- the internal and public experiences should feel distinct
+## Status Vocabulary
 
-### Candidate detail page is structured for Phase C
+The top-level candidate status is intentionally compact:
 
-The candidate detail page now has a clearer `Screening readiness` block that groups:
+- `applied`
+- `screened`
+- `shortlisted`
+- `interview_pending`
+- `interview_scheduled`
+- `interview_completed`
+- `offer_sent`
+- `offer_signed`
+- `onboarded`
+- `rejected`
 
-- AI score
-- screening summary placeholder
-- strengths placeholder
-- gaps placeholder
-- shortlist threshold
-- shortlist decision
-- admin override state
-- override note
+Side tables hold richer phase-specific state:
 
-This makes it obvious where Phase C screening outputs will land without implementing the screening logic yet.
+- `screening_results`
+- `research_profiles`
+- `interviews`
+- `calendar_holds`
+- `interview_transcripts`
+- `offers`
+- `slack_onboarding`
+
+## Design Pass
+
+The admin redesign now uses the same visual system as the public careers flow:
+
+- shared card surfaces
+- calmer spacing
+- status pills
+- stronger table hierarchy
+- less explanatory product copy
+- cleaner candidate detail sections
+
+The goal is a normal internal product feel: useful, scannable, and demo-ready.

@@ -1,9 +1,8 @@
 "use server";
 
 /**
- * Admin-only destructive actions for prototype maintenance. These are kept out
- * of normal product workflows because hard deletion is intended only for QA
- * data resets in this take-home prototype.
+ * Admin-only destructive reset actions. These stay out of normal hiring
+ * workflows because hard deletion is intended only for controlled data resets.
  */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -21,7 +20,7 @@ export async function hardDeleteCandidateAction(candidateId: string, formData: F
 
   if (confirmation !== "DELETE") {
     redirect(
-      `${candidatePath(candidateId)}?deleteError=${encodeURIComponent("Type DELETE to confirm this QA hard delete.")}`
+      `${candidatePath(candidateId)}?deleteError=${encodeURIComponent("Type DELETE to confirm this hard delete.")}`
     );
   }
 

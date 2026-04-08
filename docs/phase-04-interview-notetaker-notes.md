@@ -13,10 +13,10 @@ scheduling system:
 
 ## Why Simulated Completion Exists
 
-The take-home assignment asks for an AI notetaker/transcript layer, but requiring
-a real meeting bot would make the prototype harder to demo and configure. The
-simulated path lets an admin mark a scheduled interview as complete and create a
-real transcript-like artifact without Fireflies or a live call.
+The app needs an AI notetaker/transcript-shaped layer, but requiring a real
+meeting bot would add setup and operational overhead. The simulated path lets an
+admin mark a scheduled interview as complete and create a real transcript-like
+artifact without Fireflies or a live call.
 
 The simulated transcript is clearly labeled as simulated and is grounded in:
 
@@ -42,7 +42,7 @@ Gemini summarizes the transcript only after the app has created or received one.
 The model does not decide whether an interview is completed and does not mutate
 candidate state directly.
 
-If Gemini is temporarily rate-limited during QA, the simulated completion path
+If Gemini is temporarily rate-limited, the simulated completion path
 stores a deterministic fallback summary so the interview can still move to the
 completed state. The saved transcript remains available, and the fallback is
 marked with `model_name = deterministic-fallback` so it is not confused with a
@@ -59,6 +59,6 @@ Application code controls:
 ## Feedback Handling
 
 Feedback is intentionally one latest record per interview. Re-submitting the
-form updates the existing record instead of introducing multi-reviewer committee
-workflows. That keeps the MVP compact while still demonstrating post-interview
+form updates the existing record instead of introducing multi-interviewer committee
+workflows. That keeps the workflow compact while still supporting post-interview
 evaluation.

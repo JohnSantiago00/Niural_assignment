@@ -1,7 +1,7 @@
 /**
- * Immediate Phase 05 signing alert. This is intentionally separate from the
- * candidate signing state because email delivery should not decide whether an
- * offer is legally/workflow signed.
+ * Immediate signing alert. This is intentionally separate from the candidate
+ * signing state because email delivery should not decide whether an offer is
+ * workflow-signed.
  */
 import { Resend } from "resend";
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";

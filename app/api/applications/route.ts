@@ -1,8 +1,7 @@
 /**
- * Handles the single Phase A submission endpoint. The browser sends one
+ * Handles the public application submission endpoint. The browser sends one
  * multipart request containing text fields plus the resume file, and this route
- * is responsible for validating/parsing it before handing off to the
- * application workflow.
+ * validates/parses it before handing off to the application workflow.
  */
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";

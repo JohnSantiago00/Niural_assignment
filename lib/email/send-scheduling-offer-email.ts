@@ -1,7 +1,7 @@
 /**
- * Scheduling-offer email for Phase 03. This is best-effort delivery: the slot
- * holds remain valid even if the email provider fails, because the DB hold set
- * is the actual scheduling source of truth.
+ * Scheduling-offer email. This is best-effort delivery: the slot holds remain
+ * valid even if the email provider fails, because the DB hold set is the
+ * actual scheduling source of truth.
  */
 import { Resend } from "resend";
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";

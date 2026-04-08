@@ -1,7 +1,7 @@
 /**
- * Thin email integration for Phase A. Confirmation delivery is intentionally
- * best-effort: the application should stay saved even if Resend is unavailable
- * or the provider call fails.
+ * Thin email integration for application confirmation. Delivery is
+ * intentionally best-effort: the application should stay saved even if Resend
+ * is unavailable or the provider call fails.
  */
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";
 import { Resend } from "resend";

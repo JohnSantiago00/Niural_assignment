@@ -1,7 +1,7 @@
 /**
- * End-to-end Phase 02C enrichment workflow. Eligibility is enforced here in
- * deterministic application logic so only shortlisted candidates can be
- * enriched, regardless of what the UI shows.
+ * End-to-end enrichment workflow. Eligibility is enforced here in deterministic
+ * application logic so only shortlisted candidates can be enriched, regardless
+ * of what the UI shows.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { fetchEnrichmentSources } from "@/lib/enrichment/source-fetch";

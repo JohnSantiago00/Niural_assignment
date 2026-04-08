@@ -28,8 +28,8 @@ function normalizeOverrideNote(value: string) {
 }
 
 /**
- * Manual trigger for Phase C1 screening. Keeping this as a button makes the
- * flow easy to demo and avoids premature job/queue complexity.
+ * Manual screening trigger. Keeping this as an admin action makes scoring
+ * explicit and avoids adding a background queue before the workflow needs one.
  */
 export async function runCandidateScreeningAction(candidateId: string) {
   await requireAdminUser();

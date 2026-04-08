@@ -1,7 +1,7 @@
 /**
- * Prototype-only hard delete utility for QA resets. This removes the candidate,
- * their application, downstream AI/scheduling artifacts, audit history, and
- * stored resume so the same email can reapply to the same role.
+ * Admin-only hard delete utility for controlled data resets. This removes the
+ * candidate, their application, downstream AI/scheduling artifacts, audit
+ * history, and stored resume so the same email can reapply to the same role.
  */
 import { deleteResumeFile } from "@/lib/supabase/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -57,8 +57,8 @@ export async function hardDeleteCandidate(candidateId: string) {
   // not leave an orphaned private file after the relational reset succeeds.
   await deleteResumeFile(application.resume_file_path);
 
-  // The schema has cascades, but explicit child cleanup keeps this QA reset
-  // obvious and robust as the prototype grows new candidate-linked artifacts.
+  // The schema has cascades, but explicit child cleanup keeps this reset
+  // obvious and robust as the product accumulates candidate-linked artifacts.
   await deleteRows("calendar_holds", "candidate_id", candidate.id);
   await deleteRows("interview_feedback", "candidate_id", candidate.id);
   await deleteRows("interview_transcripts", "candidate_id", candidate.id);
@@ -71,7 +71,7 @@ export async function hardDeleteCandidate(candidateId: string) {
   await deleteRows("candidates", "id", candidate.id);
 
   // This row owns the duplicate-application constraint, so deleting it is what
-  // lets the same email reapply for the same role during QA.
+  // lets the same email reapply for the same role during local testing.
   await deleteRows("applications", "id", application.id);
 
   return {

@@ -1,15 +1,16 @@
 "use client";
 
 /**
- * Renders the public Phase A application form. This component owns the browser
- * UX only: local form state, client-side validation, and the POST request to
- * the application API. All durable business logic still lives on the server.
+ * Renders the public application form. This component owns browser UX only:
+ * local form state, client-side validation, and the POST request to the
+ * application API. All durable business logic still lives on the server.
  */
 import type { FormEvent, HTMLInputTypeAttribute } from "react";
 import { useMemo, useRef, useState } from "react";
 import { MAX_RESUME_SIZE_BYTES } from "@/lib/utils/resume";
 import { clientApplicationSchema, formatZodErrors } from "@/lib/utils/validation";
 import { cn } from "@/lib/utils/cn";
+import { Button, Eyebrow, Pill, SurfaceCard } from "@/components/public-ui";
 import type { ApplicationApiResponse } from "@/types/api";
 import type { RoleRecord } from "@/types/database";
 
@@ -73,7 +74,7 @@ export function ApplicationForm({
 
   /**
    * Validates the local form state, then sends one multipart request to the
-   * backend. The API route takes over after this and performs all Phase A
+   * backend. The API route takes over after this and performs all
    * database/storage/email work.
    */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -134,28 +135,25 @@ export function ApplicationForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-[2rem] border border-line bg-panel p-8 shadow-card"
-    >
-      {lockedRole ? (
-        <div className="mb-8 rounded-3xl border border-accent/20 bg-accent/5 px-5 py-5">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
-            Selected role
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-            {lockedRole.title}
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {lockedRole.team} · {lockedRole.location} · {lockedRole.remote_status} ·{" "}
-            {lockedRole.experience_level}
-          </p>
-          <p className="mt-3 text-sm text-slate-600">
-            You came here from this role&apos;s apply flow, so we&apos;ve locked it in for this
-            application.
-          </p>
-        </div>
-      ) : null}
+    <SurfaceCard className="p-6 sm:p-8">
+      <form onSubmit={handleSubmit}>
+        {lockedRole ? (
+          <div className="mb-8 rounded-3xl border border-accent/20 bg-accent/5 px-5 py-5">
+            <Eyebrow>Selected role</Eyebrow>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
+              {lockedRole.title}
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Pill>{lockedRole.team}</Pill>
+              <Pill>{lockedRole.location}</Pill>
+              <Pill>{lockedRole.remote_status}</Pill>
+              <Pill>{lockedRole.experience_level}</Pill>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              We&apos;ve locked this role in for your application.
+            </p>
+          </div>
+        ) : null}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Field
@@ -203,8 +201,8 @@ export function ApplicationForm({
 
         {isRoleLocked && selectedRole ? (
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-800">Role</label>
-            <div className="rounded-2xl border border-line bg-stone-50 px-4 py-3 text-sm text-slate-800">
+            <label className="mb-2 block text-sm font-semibold text-slate-800">Role</label>
+            <div className="rounded-2xl border border-line bg-white/80 px-4 py-3 text-sm text-slate-800 shadow-sm">
               <p className="font-medium">{selectedRole.title}</p>
               <p className="mt-1 text-xs text-slate-500">
                 {selectedRole.team} · {selectedRole.location} · {selectedRole.remote_status} ·{" "}
@@ -284,14 +282,16 @@ export function ApplicationForm({
         </div>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isSubmitting || !hasRoles}
-        className="mt-8 inline-flex rounded-full bg-accent px-6 py-3 text-sm font-medium text-white hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-70"
+        size="lg"
+        className="mt-8 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isSubmitting ? "Submitting..." : hasRoles ? "Submit application" : "No open roles available"}
-      </button>
-    </form>
+      </Button>
+      </form>
+    </SurfaceCard>
   );
 }
 
@@ -321,7 +321,7 @@ function Field({
 }: FieldProps) {
   return (
     <div>
-      <label htmlFor={name} className="mb-2 block text-sm font-medium text-slate-800">
+      <label htmlFor={name} className="mb-2 block text-sm font-semibold text-slate-800">
         {label}
       </label>
       <input
@@ -345,6 +345,6 @@ function Field({
 function inputClassName(hasError: boolean) {
   return cn(
     "w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400",
-    hasError ? "border-red-500" : "border-line focus:border-accent"
+    hasError ? "border-red-500" : "border-line focus:border-accent focus:ring-4 focus:ring-accent/10"
   );
 }

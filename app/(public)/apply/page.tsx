@@ -4,6 +4,7 @@
  * general "pick a role" experience.
  */
 import { ApplicationForm } from "@/components/application-form";
+import { PublicContainer, PublicHero } from "@/components/public-ui";
 import { getOpenRoles } from "@/lib/supabase/queries";
 
 type ApplyPageProps = {
@@ -27,22 +28,16 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
   const hasInvalidRoleParam = Boolean(requestedRoleId && !selectedRole);
 
   return (
-    <section className="mx-auto max-w-4xl px-6 py-14">
-      <div className="max-w-2xl">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-accent">
-          Candidate Application
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900">
-          {selectedRole
-            ? `You are applying for ${selectedRole.title}.`
-            : "Submit your application."}
-        </h1>
-        <p className="mt-4 text-base leading-7 text-slate-600">
-          {selectedRole
-            ? `We carried your selected role forward so you can focus on completing the application.`
-            : "This Phase A workflow validates the role, uploads the resume to Supabase Storage, creates the application and candidate records, and sends a confirmation email."}
-        </p>
-      </div>
+    <PublicContainer className="max-w-5xl py-10 sm:py-14">
+      <PublicHero
+        eyebrow="Candidate application"
+        title={selectedRole ? `Apply for ${selectedRole.title}.` : "Tell us where you could help."}
+        description={
+          selectedRole
+            ? "We carried your selected role forward so the application stays focused and quick to complete."
+            : "Share your background, choose an open role, and send us the context we need to review thoughtfully."
+        }
+      />
 
       {hasInvalidRoleParam ? (
         <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
@@ -57,6 +52,6 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
           lockedRole={selectedRole}
         />
       </div>
-    </section>
+    </PublicContainer>
   );
 }

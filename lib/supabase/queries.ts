@@ -1,6 +1,7 @@
 /**
- * Read-only Supabase queries used by the public Phase A pages. These helpers
- * keep page components focused on rendering while centralizing role fetch logic.
+ * Read-only Supabase queries used by the public careers pages. These helpers
+ * keep page components focused on rendering while centralizing role fetch
+ * logic.
  */
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
