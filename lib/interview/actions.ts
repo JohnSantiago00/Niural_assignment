@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { createInputFingerprint } from "@/lib/ai/fingerprint";
 import { requireAdminUser } from "@/lib/auth/authorization";
 import {
   buildDeterministicInterviewSummary,
@@ -16,13 +17,17 @@ import {
 } from "@/lib/gemini/summarize-interview";
 import { buildSimulatedInterviewTranscript } from "@/lib/interview/simulate-interview";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { getGeminiModel } from "@/lib/utils/env";
 import type {
   CandidateRecord,
+  InterviewTranscriptRecord,
   InterviewRecord,
   ResearchProfileRecord,
   RoleRecord,
   ScreeningResultRecord
 } from "@/types/database";
+
+const INTERVIEW_SUMMARY_PROMPT_VERSION = "interview-summary-v1";
 
 function candidatePath(candidateId: string) {
   return `/admin/candidates/${candidateId}`;
@@ -122,6 +127,21 @@ async function getInterviewContext(candidateId: string) {
   return { candidate, interview };
 }
 
+function buildInterviewSummaryFingerprint(input: {
+  candidateName: string;
+  roleTitle: string;
+  transcriptText: string;
+  modelName: string;
+}) {
+  return createInputFingerprint({
+    promptVersion: INTERVIEW_SUMMARY_PROMPT_VERSION,
+    modelName: input.modelName,
+    candidateName: input.candidateName,
+    roleTitle: input.roleTitle,
+    transcriptText: input.transcriptText
+  });
+}
+
 export async function simulateInterviewCompleteAction(candidateId: string) {
   await requireAdminUser();
   const supabase = createSupabaseAdminClient();
@@ -170,30 +190,59 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
       screeningResult: screeningResult ?? null,
       researchProfile: researchProfile ?? null
     });
+    const targetModelName = getGeminiModel();
+    const inputFingerprint = buildInterviewSummaryFingerprint({
+      candidateName: candidate.full_name,
+      roleTitle: role.title,
+      transcriptText,
+      modelName: targetModelName
+    });
+    const { data: existingTranscript } = await supabase
+      .from("interview_transcripts")
+      .select("*")
+      .eq("interview_id", interview.id)
+      .maybeSingle<InterviewTranscriptRecord>();
+    const canReuseSummary =
+      existingTranscript?.input_fingerprint === inputFingerprint &&
+      existingTranscript.prompt_version === INTERVIEW_SUMMARY_PROMPT_VERSION;
     let summary;
     let modelName = "deterministic-fallback";
+    let reusedCachedArtifact = false;
 
-    try {
-      const generated = await summarizeInterviewTranscript({
-        candidateName: candidate.full_name,
-        roleTitle: role.title,
-        transcriptText
-      });
-      summary = generated.summary;
-      modelName = generated.modelName;
-    } catch (error) {
-      if (!isRecoverableGeminiAvailabilityError(error)) {
-        throw error;
+    if (canReuseSummary) {
+      summary = {
+        overall_assessment: existingTranscript.overall_assessment,
+        strengths_observed: existingTranscript.strengths_observed,
+        concerns_observed: existingTranscript.concerns_observed,
+        key_topics_discussed: existingTranscript.key_topics_discussed,
+        recommended_follow_up: existingTranscript.recommended_follow_up,
+        concise_summary: existingTranscript.concise_summary
+      };
+      modelName = existingTranscript.model_name;
+      reusedCachedArtifact = true;
+    } else {
+      try {
+        const generated = await summarizeInterviewTranscript({
+          candidateName: candidate.full_name,
+          roleTitle: role.title,
+          transcriptText
+        });
+        summary = generated.summary;
+        modelName = generated.modelName;
+      } catch (error) {
+        if (!isRecoverableGeminiAvailabilityError(error)) {
+          throw error;
+        }
+
+        // QA should not be blocked by temporary Gemini quota/high-demand errors.
+        // The transcript remains real app data; this fallback summary is clearly
+        // labeled by model_name and can be regenerated later if needed.
+        console.warn("Gemini interview summary unavailable; using deterministic fallback", error);
+        summary = buildDeterministicInterviewSummary({
+          candidateName: candidate.full_name,
+          roleTitle: role.title
+        });
       }
-
-      // QA should not be blocked by temporary Gemini quota/high-demand errors.
-      // The transcript remains real app data; this fallback summary is clearly
-      // labeled by model_name and can be regenerated later if needed.
-      console.warn("Gemini interview summary unavailable; using deterministic fallback", error);
-      summary = buildDeterministicInterviewSummary({
-        candidateName: candidate.full_name,
-        roleTitle: role.title
-      });
     }
     const completedAt = new Date().toISOString();
 
@@ -210,7 +259,12 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
         recommended_follow_up: summary.recommended_follow_up,
         concise_summary: summary.concise_summary,
         model_name: modelName,
-        completed_at: completedAt
+        input_fingerprint: inputFingerprint,
+        prompt_version: INTERVIEW_SUMMARY_PROMPT_VERSION,
+        generated_at: reusedCachedArtifact
+          ? existingTranscript?.generated_at ?? existingTranscript?.updated_at ?? completedAt
+          : completedAt,
+        completed_at: reusedCachedArtifact ? existingTranscript?.completed_at ?? completedAt : completedAt
       },
       { onConflict: "interview_id" }
     );
@@ -227,7 +281,9 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
     await writeAuditLog(
       candidate.id,
       "interview_simulated_completed",
-      "Admin recorded interview completion and generated an interview summary from a simulated transcript."
+      reusedCachedArtifact
+        ? "Admin recorded interview completion using the cached interview summary."
+        : "Admin recorded interview completion and generated an interview summary from a simulated transcript."
     );
 
     revalidatePath(candidatePath(candidate.id));

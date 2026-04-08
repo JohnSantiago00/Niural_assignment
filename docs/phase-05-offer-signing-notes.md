@@ -54,6 +54,9 @@ The drawn signature is stored as a PNG data URL on the `offers` row. For this pr
 - Admin review shows offer status, recipient, sent time, and signed state rather than the full letter body.
 - The signing token does not currently expire because demo reliability is prioritized.
 
-## What Phase 06 Builds Next
+## How This Connects To Phase 06
 
-Phase 06 should handle onboarding handoff after the offer is signed, including Slack onboarding or other internal team setup flows.
+After the offer is signed, the app starts Slack onboarding by creating or
+reusing a `slack_onboarding` record. Depending on the configured Slack
+capabilities, it can send an invite-link email, detect the candidate by Slack
+email lookup, post a team welcome, send a candidate DM, and notify HR.

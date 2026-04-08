@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Lightweight drawn-signature pad for Phase 05. We keep this isolated so a
- * future production signing vendor or richer signature-pad package can replace
- * it without changing offer workflow state.
+ * Lightweight drawn-signature pad. It stays isolated so a future production
+ * signing vendor or richer signature-pad package can replace it without
+ * changing offer workflow state.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -131,10 +131,11 @@ function SignaturePadField({
 
   return (
     <div>
-      <div className="rounded-3xl border border-line bg-white p-3">
+      <p className="mb-3 text-sm font-semibold text-ink">Draw your signature</p>
+      <div className="rounded-3xl border border-line/80 bg-white/85 p-3 shadow-sm">
         <canvas
           ref={canvasRef}
-          className="block w-full touch-none rounded-2xl bg-panel"
+          className="block w-full touch-none rounded-2xl bg-hero/70"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -150,7 +151,7 @@ function SignaturePadField({
         <button
           type="button"
           onClick={clearSignature}
-          className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+          className="rounded-full border border-line/80 bg-white/80 px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300"
         >
           Clear signature
         </button>
@@ -169,12 +170,17 @@ export function OfferSignatureForm({
 
   return (
     <form action={action} className="mt-8 space-y-5">
+      <ol className="grid gap-2 text-sm text-slate-600">
+        <li className="rounded-2xl bg-hero/70 px-4 py-3">1. Review the offer letter.</li>
+        <li className="rounded-2xl bg-hero/70 px-4 py-3">2. Confirm your agreement.</li>
+        <li className="rounded-2xl bg-hero/70 px-4 py-3">3. Draw your signature and sign.</li>
+      </ol>
       <SignaturePadField onSignatureChange={setHasSignature} />
-      <label className="flex gap-3 rounded-2xl border border-line bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+      <label className="flex gap-3 rounded-2xl border border-line/80 bg-white/85 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
         <input
           type="checkbox"
           name="agreement"
-          className="mt-1"
+          className="mt-1 h-4 w-4 rounded border-line text-accent focus:ring-accent"
           checked={hasAgreed}
           onChange={(event) => setHasAgreed(event.target.checked)}
         />
@@ -186,9 +192,9 @@ export function OfferSignatureForm({
       <button
         type="submit"
         disabled={!hasSignature || !hasAgreed}
-        className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accentDark disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:translate-y-0"
       >
-        Sign offer
+        Sign Offer
       </button>
     </form>
   );

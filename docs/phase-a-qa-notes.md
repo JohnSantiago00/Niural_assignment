@@ -34,12 +34,12 @@
 - Audit log insertion is best-effort; failures are logged rather than surfaced to the candidate.
 - Duplicate protection is scoped to role + email, not to broader identity matching.
 
-## What later phases build next
+## How later phases now build on this
 
-- Admin review UI for applications and candidates
-- richer status transitions and review actions
-- AI scoring and enrichment
-- scheduling, interviews, offer signing, and onboarding handoff
+- Admin review UI reads the application/candidate records.
+- AI screening and enrichment attach evidence to the same candidate.
+- Scheduling, interviews, offer signing, and Slack onboarding advance the candidate from the original application record.
+- The hard-delete QA utility removes the application row too, so a reviewer can reapply with the same email and role.
 
 ## How to explain this in an interview
 

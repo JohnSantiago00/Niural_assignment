@@ -4,12 +4,14 @@
  * creates tokens, sends offers, and records signatures.
  */
 import crypto from "node:crypto";
+import { createInputFingerprint } from "@/lib/ai/fingerprint";
 import {
   buildDeterministicOfferLetterDraft,
   generateOfferLetterDraft
 } from "@/lib/gemini/generate-offer-letter";
 import { isRecoverableGeminiAvailabilityError } from "@/lib/gemini/summarize-interview";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { getGeminiModel } from "@/lib/utils/env";
 import type {
   CandidateRecord,
   OfferRecord,
@@ -34,8 +36,42 @@ export type OfferSigningView = {
   role: RoleRecord | null;
 };
 
+const OFFER_LETTER_PROMPT_VERSION = "offer-letter-v2";
+
 function generateSigningToken() {
   return crypto.randomBytes(24).toString("hex");
+}
+
+function buildOfferFingerprint(input: {
+  candidate: CandidateRecord;
+  role: RoleRecord;
+  screeningResult: ScreeningResultRecord | null;
+  researchProfile: ResearchProfileRecord | null;
+  interviewTranscript: InterviewTranscriptRecord;
+  offerInput: OfferInput;
+  modelName: string;
+}) {
+  return createInputFingerprint({
+    promptVersion: OFFER_LETTER_PROMPT_VERSION,
+    modelName: input.modelName,
+    candidate: {
+      fullName: input.candidate.full_name,
+      email: input.candidate.email
+    },
+    role: {
+      title: input.role.title,
+      team: input.role.team,
+      responsibilities: input.role.responsibilities,
+      requirements: input.role.requirements
+    },
+    context: {
+      screeningRationale: input.screeningResult?.rationale ?? null,
+      researchBrief: input.researchProfile?.candidate_brief ?? null,
+      interviewSummary: input.interviewTranscript.concise_summary,
+      interviewFingerprint: input.interviewTranscript.input_fingerprint
+    },
+    offerInput: input.offerInput
+  });
 }
 
 function nextCalendarDate(value: string) {
@@ -172,6 +208,20 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     throw new Error("Start date must be after the interview date.");
   }
 
+  const targetModelName = getGeminiModel();
+  const inputFingerprint = buildOfferFingerprint({
+    candidate,
+    role,
+    screeningResult,
+    researchProfile,
+    interviewTranscript,
+    offerInput: input,
+    modelName: targetModelName
+  });
+  const canReuseOffer =
+    existingOffer?.input_fingerprint === inputFingerprint &&
+    existingOffer.prompt_version === OFFER_LETTER_PROMPT_VERSION &&
+    existingOffer.generated_letter.trim().length > 0;
   const draftInput = {
     candidateName: candidate.full_name,
     roleTitle: role.title,
@@ -187,26 +237,38 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
   };
   let letter;
   let modelName = "deterministic-fallback";
+  let reusedCachedArtifact = false;
 
-  try {
-    const generated = await generateOfferLetterDraft(draftInput);
-    letter = generated.letter;
-    modelName = generated.modelName;
-  } catch (error) {
-    if (!isRecoverableGeminiAvailabilityError(error)) {
-      throw error;
+  if (canReuseOffer) {
+    // Offer reuse keeps repeated Send clicks from spending quota when the
+    // underlying candidate/context/manager inputs are unchanged.
+    letter = existingOffer.generated_letter;
+    modelName = existingOffer.generated_model_name;
+    reusedCachedArtifact = true;
+  } else {
+    try {
+      const generated = await generateOfferLetterDraft(draftInput);
+      letter = generated.letter;
+      modelName = generated.modelName;
+    } catch (error) {
+      if (!isRecoverableGeminiAvailabilityError(error)) {
+        throw error;
+      }
+
+      // Keep QA moving when Gemini is temporarily quota-limited. The offer is
+      // still generated from explicit hiring-manager inputs and is tagged with a
+      // deterministic model name so reviewers can tell it was not AI-generated.
+      console.warn("Gemini offer draft unavailable; using deterministic fallback", error);
+      const fallback = buildDeterministicOfferLetterDraft(draftInput);
+      letter = fallback.letter;
+      modelName = fallback.modelName;
     }
-
-    // Keep QA moving when Gemini is temporarily quota-limited. The offer is
-    // still generated from explicit hiring-manager inputs and is tagged with a
-    // deterministic model name so reviewers can tell it was not AI-generated.
-    console.warn("Gemini offer draft unavailable; using deterministic fallback", error);
-    const fallback = buildDeterministicOfferLetterDraft(draftInput);
-    letter = fallback.letter;
-    modelName = fallback.modelName;
   }
 
-  const signingToken = generateSigningToken();
+  const signingToken = existingOffer?.signing_token ?? generateSigningToken();
+  const generatedAt = reusedCachedArtifact
+    ? existingOffer?.generated_at ?? existingOffer?.updated_at ?? new Date().toISOString()
+    : new Date().toISOString();
   const { data: offer, error: offerError } = await supabase
     .from("offers")
     .upsert(
@@ -223,6 +285,9 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
         custom_terms: input.customTerms,
         generated_letter: letter,
         generated_model_name: modelName,
+        input_fingerprint: inputFingerprint,
+        prompt_version: OFFER_LETTER_PROMPT_VERSION,
+        generated_at: generatedAt,
         signing_token: signingToken,
         signing_token_expires_at: null,
         offer_email_status: null,
@@ -248,7 +313,13 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
     .update({ current_status: "offer_drafted" })
     .eq("id", candidate.id);
 
-  await writeAuditLog(candidate.id, "offer_drafted", "Offer letter prepared for sending.");
+  await writeAuditLog(
+    candidate.id,
+    "offer_drafted",
+    reusedCachedArtifact
+      ? "Offer letter reused from cached generation inputs."
+      : "Offer letter prepared for sending."
+  );
 
   return offer;
 }

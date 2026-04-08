@@ -80,16 +80,19 @@ If Resend fails, the API still returns success for the saved application and inc
 
 - The application and candidate inserts are coordinated in server code rather than a Postgres transaction function. That keeps the logic visible and interview-friendly, but it does mean we perform best-effort cleanup if a later step fails.
 - Resume storage is private and server-managed, which is secure and simple, but it requires backend upload orchestration instead of direct browser uploads.
-- The admin area is only a placeholder in Phase A so we stay focused on the intake pipeline first.
+- Email delivery is best-effort; application persistence is more important than a confirmation email side effect.
 
-## How I would extend this later
+## How later phases extend it
 
-Future phases can add:
+The current application-intake records now feed:
 
-- admin review views
-- AI scoring
+- admin review
+- AI screening
+- enrichment
 - interview scheduling
-- offer generation
-- onboarding automations
+- interview summaries
+- offer generation and signing
+- Slack onboarding
 
-The current structure leaves room for that without forcing those concerns into Phase A too early.
+That is the reason the first phase creates `applications`, `candidates`, and
+`audit_logs` rather than only sending an email or storing a flat form payload.

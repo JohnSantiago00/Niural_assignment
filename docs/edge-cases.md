@@ -1,128 +1,83 @@
-# Edge Cases
+# Edge Cases Handled
 
-## Application intake
+The project handles edge cases across the hiring pipeline with deterministic validation, database constraints, and provider-failure fallbacks.
 
-- Duplicate application for the same role and email
-  - blocked in app logic and reinforced by a DB uniqueness constraint
+## Top Edge Cases
 
-- Role closed after the page loaded but before submit
-  - checked again at submission time on the server
+| Edge case | Solution | Why it matters |
+| --- | --- | --- |
+| Duplicate application | Role/email duplicate protection in app logic and DB constraint. | Prevents repeated applications from creating duplicate candidate records. |
+| Closed role submit | Server rechecks role status on submission. | Avoids accepting applications for stale public pages. |
+| Resume upload succeeds but DB write fails | Best-effort storage cleanup. | Reduces orphaned private files. |
+| Gemini quota exhausted | Deterministic fallback for interview summary, offer letter, and Slack welcome copy. | Keeps QA and demo flow unblocked. |
+| Repeated AI action | Input fingerprints reuse existing artifacts. | Prevents unnecessary quota burn. |
+| Non-shortlisted enrichment | UI and server both block enrichment. | Keeps expensive enrichment focused on plausible candidates. |
+| Overlapping interview holds | DB-backed holds and exclusion constraint. | Prevents double booking even under concurrent actions. |
+| Candidate selects one slot | DB function confirms selected hold and releases sibling holds. | Keeps scheduling state atomic. |
+| Google attendee invite blocked | Plain event fallback + normalized admin warning. | Preserves scheduled interview truth without exposing raw provider errors to candidates. |
+| Offer start date too early | UI min date + server validation. | Prevents invalid offer timing. |
+| Offer signed twice | First signature wins; later attempts do not overwrite. | Prevents accidental or malicious duplicate signing. |
+| Empty signature submit | Client disables submit and server validates again. | Ensures signature capture is real. |
+| Slack invite API unavailable | Invite-link email fallback or readable follow-up state. | Avoids faking Slack admin capability. |
+| Slack user already exists | Lookup by email marks joined and skips invite. | Prevents duplicate invites. |
+| Slack message repeated | Welcome/HR timestamps make sends idempotent. | Avoids spamming channels/DMs. |
 
-- Invalid file type or oversized resume
-  - rejected before upload and before record creation
+## Application Intake
 
-- Resume upload succeeds but later DB write fails
-  - workflow attempts cleanup instead of leaving orphaned files
+- Invalid file type or oversized resume is rejected before upload.
+- Duplicate application for the same role/email is blocked.
+- Closed roles are checked server-side at submit time.
+- Confirmation email failure does not roll back a saved application.
+- Audit log records application creation.
 
-- Confirmation email fails
-  - application remains saved; email is best-effort only
+## Admin and Auth
 
-## Admin / auth
+- Unauthenticated `/admin` access redirects to login.
+- Authenticated but unauthorized users are redirected to `/not-authorized`.
+- Admin allowlist uses `public.admin_users`.
+- QA hard delete removes candidate, application, downstream workflow records, audit logs, and resume storage object.
 
-- Unauthenticated access to admin routes
-  - redirected to login
+## Screening and Enrichment
 
-- Authenticated but unauthorized user
-  - denied admin access cleanly
-
-- Test candidate needs a full reset
-  - admin-only hard delete removes candidate, application, downstream artifacts, audit logs, and resume storage object
-
-## Screening
-
-- Unreadable or malformed resume
-  - screening run fails cleanly without partial result persistence
-
-- Malformed model output
-  - Zod validation blocks writes
-
-- Overlong model arrays
-  - safe list fields are normalized before final validation where appropriate
-
-- Admin override exists before screening rerun
-  - human-chosen status is preserved even when the score is updated
-
-## Enrichment
-
-- Candidate is not shortlisted
-  - enrichment action is gated in UI and blocked again on the server
-
-- Missing LinkedIn / GitHub / portfolio URL
-  - enrichment continues and records the missing-source limitation
-
-- Blocked or unreadable profile source
-  - enrichment continues; the source is treated as unavailable rather than evidence
-
-- Missing online information
-  - does not automatically become a discrepancy flag
+- Malformed AI output is blocked by Zod validation.
+- Screening reruns reuse cached artifact when fingerprint matches.
+- Admin override is preserved across screening changes.
+- Enrichment is only allowed for shortlisted candidates.
+- Missing or blocked source URLs are recorded as limitations, not treated as negative evidence.
+- Confidence score reflects enrichment quality, not candidate quality.
 
 ## Scheduling
 
-- Google Calendar busy window exists
-  - slot generation avoids it through free/busy lookup
+- Google Calendar free/busy windows are avoided when configured.
+- Active DB holds are treated as busy even before a calendar event exists.
+- Expired holds are marked and fresh suggestions can be generated.
+- Candidate reschedule notes can be interpreted into structured preferences.
+- Replacement suggestions show the current active options before admin approval.
+- Email delivery failure does not invalidate holds or confirmed interviews.
 
-- Another candidate already has an active hold
-  - slot generation avoids active DB holds and the exclusion constraint rejects overlapping active holds/confirmed slots
+## Interview
 
-- Candidate chooses one held slot
-  - selected hold is confirmed and sibling holds are released atomically by the DB function
+- Simulated interview completion creates transcript-shaped data for demo.
+- Transient Supabase write errors during completion are retried.
+- Re-running completion can safely finish partially completed state.
+- Interview summary uses deterministic fallback on Gemini quota/high-demand errors.
 
-- Holds expire
-  - expired holds are marked and a fresh set can be generated
+## Offer and Signing
 
-- Google Calendar attendee invite fails in service-account setup
-  - app can fall back to plain event creation and keeps the DB-confirmed interview state
+- Offer generation requires post-interview eligibility.
+- Start date must be after the interview date.
+- Generated letter is stored but not dumped into the admin UI.
+- Candidate signing page is tokenized.
+- Server validates agreement checkbox and non-empty signature image.
+- Signed timestamp and IP are recorded.
+- Signed-offer alert email is best-effort and does not control signing truth.
 
-- Resend scheduling email fails
-  - holds remain valid and admin can still access the scheduling state
+## Slack Onboarding
 
-## Interview notes and feedback
-
-- No live meeting transcript provider is configured
-  - admin can use the simulated completion path to create a transcript-shaped record for demo
-
-- Feedback submitted before interview completion
-  - server rejects it
-
-- Feedback submitted more than once
-  - latest feedback record is updated for that interview
-
-## Offer and signing
-
-- Offer start date is before or on interview completion date
-  - UI and server validation reject it with “Start date must be after the interview date”
-
-- Offer email delivery is delayed or fails
-  - offer state remains stored and delivery status is surfaced to admin
-
-- Signing link is invalid
-  - tokenized page returns a clean not-found state
-
-- Candidate submits without a drawn signature or agreement checkbox
-  - client disables the button and server validates again
-
-- Candidate signs twice
-  - first signature wins; later attempts do not overwrite the signed offer
-
-- IP capture is unavailable
-  - signing still succeeds with a null IP rather than losing the signed offer
-
-## Slack onboarding
-
-- Offer signing is submitted twice
-  - Slack onboarding is not duplicated; the existing candidate-linked record is reused
-
-- Slack invite admin API is unavailable
-  - invite status is marked skipped or failed with a readable limitation instead of fake success
-
-- Candidate already exists in Slack
-  - lookup by email marks the candidate as joined and skips repeated invites
-
-- Slack join event arrives more than once
-  - welcome and HR messages are not resent after delivery timestamps exist
-
-- Slack message delivery fails
-  - onboarding state remains visible in admin and the failed message path is stored for follow-up
-
-- Slack Events request has an invalid signature
-  - the API route rejects it before touching onboarding state
+- Offer-signed trigger is idempotent.
+- Existing onboarding record is reused on retries.
+- Slack lookup by email handles already-joined candidates.
+- Admin invite path is attempted only when configured.
+- Invite-link email fallback is used when `SLACK_WORKSPACE_INVITE_URL` exists.
+- Slack Events API verifies request signatures.
+- Local development can use the admin `Check Slack and send welcome` action because Slack cannot post events to `localhost`.

@@ -6,8 +6,10 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { downloadResumeFile } from "@/lib/supabase/storage";
 import { screenCandidateWithAi } from "@/lib/gemini/screen-candidate";
 import { extractResumeText } from "@/lib/screening/extract-resume-text";
+import { createInputFingerprint } from "@/lib/ai/fingerprint";
+import { getGeminiModel } from "@/lib/utils/env";
 import type { ScreeningOutput } from "@/lib/screening/schema";
-import type { RoleRecord } from "@/types/database";
+import type { RoleRecord, ScreeningResultRecord } from "@/types/database";
 
 type ScreeningWorkflowResult = {
   fitScore: number;
@@ -25,6 +27,8 @@ type CandidateContext = {
   resumeFilePath: string;
   role: RoleRecord;
 };
+
+const SCREENING_PROMPT_VERSION = "screening-v2";
 
 async function getCandidateContext(candidateId: string): Promise<CandidateContext> {
   const supabase = createSupabaseAdminClient();
@@ -82,6 +86,42 @@ function resolveCandidateStatus(
   return screening.fit_score >= shortlistThreshold ? "shortlisted" : "screened";
 }
 
+function buildScreeningFingerprint(input: {
+  resumeText: string;
+  role: RoleRecord;
+  modelName: string;
+}) {
+  return createInputFingerprint({
+    promptVersion: SCREENING_PROMPT_VERSION,
+    modelName: input.modelName,
+    resumeText: input.resumeText,
+    role: {
+      title: input.role.title,
+      team: input.role.team,
+      location: input.role.location,
+      remoteStatus: input.role.remote_status,
+      experienceLevel: input.role.experience_level,
+      responsibilities: input.role.responsibilities,
+      requirements: input.role.requirements
+    }
+  });
+}
+
+function screeningOutputFromRecord(record: ScreeningResultRecord): ScreeningOutput {
+  return {
+    extracted_skills: record.extracted_skills,
+    years_experience: record.years_experience,
+    education: record.education,
+    past_employers: record.past_employers,
+    key_achievements: record.key_achievements,
+    strengths: record.strengths,
+    gaps: record.gaps,
+    fit_score: record.fit_score,
+    rationale: record.rationale,
+    shortlist_recommendation: record.shortlist_recommendation
+  };
+}
+
 /**
  * Runs manual AI screening for one candidate and persists the latest screening
  * result. If an admin override is active, the score still updates but the
@@ -94,10 +134,38 @@ export async function runCandidateScreening(
   const context = await getCandidateContext(candidateId);
   const resumeFile = await downloadResumeFile(context.resumeFilePath);
   const parsedResumeText = await extractResumeText(context.resumeFilePath, resumeFile);
-  const { screening, modelName } = await screenCandidateWithAi({
+  const targetModelName = getGeminiModel();
+  const inputFingerprint = buildScreeningFingerprint({
+    resumeText: parsedResumeText,
     role: context.role,
-    resumeText: parsedResumeText
+    modelName: targetModelName
   });
+  const { data: existingScreening } = await supabase
+    .from("screening_results")
+    .select("*")
+    .eq("candidate_id", context.candidateId)
+    .maybeSingle<ScreeningResultRecord>();
+  let screening: ScreeningOutput;
+  let modelName = targetModelName;
+  let reusedCachedArtifact = false;
+
+  if (
+    existingScreening?.input_fingerprint === inputFingerprint &&
+    existingScreening.prompt_version === SCREENING_PROMPT_VERSION
+  ) {
+    // Fingerprint-based reuse prevents burning Gemini quota on repeated admin
+    // clicks while still regenerating when prompt/model/role/resume inputs move.
+    screening = screeningOutputFromRecord(existingScreening);
+    modelName = existingScreening.model_name;
+    reusedCachedArtifact = true;
+  } else {
+    const generated = await screenCandidateWithAi({
+      role: context.role,
+      resumeText: parsedResumeText
+    });
+    screening = generated.screening;
+    modelName = generated.modelName;
+  }
 
   const nextStatus = resolveCandidateStatus(
     screening,
@@ -119,7 +187,12 @@ export async function runCandidateScreening(
       fit_score: screening.fit_score,
       rationale: screening.rationale,
       shortlist_recommendation: screening.shortlist_recommendation,
-      model_name: modelName
+      model_name: modelName,
+      input_fingerprint: inputFingerprint,
+      prompt_version: SCREENING_PROMPT_VERSION,
+      generated_at: reusedCachedArtifact
+        ? existingScreening?.generated_at ?? existingScreening?.updated_at ?? new Date().toISOString()
+        : new Date().toISOString()
     },
     {
       onConflict: "candidate_id"
@@ -151,9 +224,11 @@ export async function runCandidateScreening(
   }
 
   const activityDetail =
-    nextStatus && !context.adminOverride
-      ? `AI screening completed with score ${screening.fit_score}. Candidate status set to ${nextStatus}.`
-      : `AI screening completed with score ${screening.fit_score}. Admin override preserved the current status.`;
+    reusedCachedArtifact
+      ? `Screening reused cached result with score ${screening.fit_score}.`
+      : nextStatus && !context.adminOverride
+        ? `AI screening completed with score ${screening.fit_score}. Candidate status set to ${nextStatus}.`
+        : `AI screening completed with score ${screening.fit_score}. Admin override preserved the current status.`;
 
   const { error: auditLogError } = await supabase.from("audit_logs").insert({
     candidate_id: context.candidateId,

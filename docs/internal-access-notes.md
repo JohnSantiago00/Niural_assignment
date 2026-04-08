@@ -1,70 +1,93 @@
-# Internal Access Notes
+# Internal Access and RBAC Notes
 
-## Why we moved away from the env access-code gate
+Current admin access model, why it was chosen, and how it would evolve into production RBAC.
 
-The first admin protection pass improved safety, but it still felt artificial:
+## Current Security Model
 
-- the login experience was a single shared access code
-- there was no real user identity
-- authentication and authorization were collapsed into one step
-- the header could only show `Admin` after the special cookie existed
+| Area | Current protection |
+| --- | --- |
+| Public careers/apply pages | Public. |
+| Candidate scheduling page | Public but tokenized with `selection_token`. |
+| Candidate offer signing page | Public but tokenized with `signing_token`. |
+| Admin dashboard | Supabase Auth session + `admin_users` allowlist. |
+| Server-side privileged DB operations | Supabase service-role key, server only. |
+| Slack Events endpoint | Slack signature verification with `SLACK_SIGNING_SECRET`. |
 
-For a stronger internal-tool MVP, it was better to let people sign in as real users and then decide separately whether they are allowed into the admin area.
+## Why Supabase Auth + Allowlist
 
-## What replaced it
+The first admin protection model used a shared access code. That was simple but too artificial:
 
-The project now uses:
+- no individual identity
+- no separation between authentication and authorization
+- no clean way to show logged-in admin state
+- no obvious migration path to real roles
 
-- Supabase Auth for authentication
-- a small `admin_users` table for authorization
-- a shared `/login` page
-- Supabase SSR session handling for Next.js App Router
-- proxy-based protection for unauthenticated `/admin` access
+The current model uses:
 
-## How login works
+- Supabase Auth for identity
+- `public.admin_users` for authorization
+- `/login` for sign-in
+- `/not-authorized` for signed-in users who are not admins
 
-1. A user visits `/login`.
-2. They sign in with email and password through Supabase Auth.
-3. Supabase sets the auth session.
-4. The Next.js proxy refreshes and forwards that session for server-rendered requests.
-5. Server components can read the authenticated user through the Supabase SSR client.
+This is still small, but it is much closer to a real internal product.
 
-This means the admin area now uses a real authenticated identity instead of a shared password.
+## Current Admin Flow
 
-## How admin authorization works
+```text
+User opens /admin
+  |
+  v
+No Supabase session?
+  -> redirect to /login
 
-Authentication alone is not enough. A signed-in user only becomes an admin if
-their email exists in `public.admin_users`.
+Has Supabase session?
+  |
+  v
+Email exists in public.admin_users?
+  -> yes: render admin
+  -> no: redirect to /not-authorized
+```
 
-The `admin_users` table is intentionally small:
+## Tokenized Candidate Pages
 
-- `id`
-- `email`
-- `created_at`
+Candidate scheduling and signing are intentionally public but tokenized.
 
-Authorization is checked server-side using the service-role Supabase client. If a user is authenticated but their email is not in `admin_users`, they are redirected to a clean `/not-authorized` page.
+| Route | Token | Why |
+| --- | --- | --- |
+| `/interview/[selectionToken]` | high-entropy scheduling token shared across active holds | Candidate can pick from offered slots without creating an account. |
+| `/offer/[signingToken]` | high-entropy offer signing token | Candidate can review and sign a specific offer without admin access. |
 
-## Why this is a stronger MVP
+The server validates token existence and current state before mutations.
 
-This model is still small, but it is more realistic than the access-code gate:
+## Production RBAC Design
 
-- users sign in as themselves
-- auth and authorization are separated
-- internal access is explicit and auditable through a table
-- navigation can feel more natural:
-  - logged out: `Login`
-  - logged in admin: `Admin`, `Logout`
-  - logged in non-admin: `Logout`
+A production version would introduce at least three internal roles:
 
-## What a more production-ready version would look like later
+| Role | Can do | Cannot do |
+| --- | --- | --- |
+| Recruiter / Hiring manager | View all candidates, run screening/enrichment, schedule, send offers, onboard | Manage system configuration unless explicitly granted. |
+| Interviewer | View assigned candidates and submit interview feedback | See salary/offers, Slack onboarding state, or unrelated candidates. |
+| Admin | Manage users, roles, workflow settings, and all candidate data | N/A, subject to audit logging. |
 
-If the system continued beyond the take-home prototype, the next step would be:
+Candidate users would remain separate from internal users.
 
-- proper admin management UI
-- role-based authorization beyond a single admin allowlist
-- invite flows or SSO
-- stronger audit logging around authorization changes
-- row-level security policies that align with user roles
-- potentially organization-backed identity such as company SSO
+## Migration Path
 
-For this project, Supabase Auth plus a small `admin_users` table is the best balance between realism and simplicity.
+The upgrade path is additive:
+
+1. Add role metadata to Supabase Auth users or a new `internal_users` table.
+2. Add assignment tables for interviewer/candidate relationships.
+3. Enable RLS policies for candidate, application, offer, and feedback tables.
+4. Split admin pages by role-specific capabilities.
+5. Keep service-role operations constrained to server-only workflow helpers.
+6. Expand audit logs to include authorization changes and sensitive record access.
+
+## Why Not Build Full RBAC Now
+
+Full RBAC is valuable, but it would add complexity across every route and table before the assignment workflow is validated. For this prototype, the allowlist model is the right balance:
+
+- real identity
+- explicit admin access
+- small setup burden
+- easy reviewer flow
+- clear production migration path
