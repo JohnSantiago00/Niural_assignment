@@ -148,7 +148,7 @@ async function main() {
   await ensureMigrationTable();
 
   const migrationFiles = (await readdir(migrationsDir))
-    .filter((fileName) => fileName.endsWith(".sql"))
+    .filter((fileName) => fileName.endsWith(".sql") && !fileName.endsWith(" 2.sql"))
     .sort((a, b) => a.localeCompare(b));
 
   for (const filename of migrationFiles) {

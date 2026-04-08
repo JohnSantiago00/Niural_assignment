@@ -17,6 +17,14 @@ as $$
   from unnest(input) as item;
 $$;
 
+create or replace function public.text_array_to_education_jsonb(input jsonb)
+returns jsonb
+language sql
+immutable
+as $$
+  select coalesce(input, '[]'::jsonb);
+$$;
+
 create or replace function public.text_array_to_employers_jsonb(input text[])
 returns jsonb
 language sql
@@ -33,6 +41,14 @@ as $$
     '[]'::jsonb
   )
   from unnest(input) as item;
+$$;
+
+create or replace function public.text_array_to_employers_jsonb(input jsonb)
+returns jsonb
+language sql
+immutable
+as $$
+  select coalesce(input, '[]'::jsonb);
 $$;
 
 alter table public.screening_results

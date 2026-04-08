@@ -134,7 +134,13 @@ async function ensureResumeBucket() {
 async function ensureRole(role) {
   const existing = await failOnError(
     `Failed to load role ${role.title}`,
-    await supabase.from("roles").select("*").eq("title", role.title).maybeSingle()
+    await supabase
+      .from("roles")
+      .select("*")
+      .eq("title", role.title)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()
   );
 
   if (existing) {
