@@ -14,6 +14,25 @@ npm run db:setup
 npm run dev
 ```
 
+## Local Setup Notes
+
+`npm run db:setup` does two things:
+
+1. Applies every SQL migration in `supabase/migrations` in filename order.
+2. Runs the demo seed script.
+
+Admin access:
+
+1. Create a Supabase Auth user for the admin email.
+2. Set `DEMO_ADMIN_EMAIL=you@example.com` before running `npm run db:setup`, or add the email to `public.admin_users`.
+3. Sign in at `/login`, then open `/admin`.
+
+If you only need to refresh demo data after migrations are already applied, run:
+
+```bash
+npm run db:seed
+```
+
 ## Visit
 
 - [http://localhost:3000/careers](http://localhost:3000/careers) — public careers flow
@@ -154,24 +173,6 @@ Optional for admin convenience:
 | Slack                      | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_WORKSPACE_INVITE_URL`, `SLACK_HR_CHANNEL_ID`, `SLACK_ONBOARDING_CHANNEL_ID`, `SLACK_ONBOARDING_RESOURCE_LINKS`                                |
 | Slack admin invite support | `SLACK_ADMIN_TOKEN`, `SLACK_TEAM_ID`, `SLACK_INVITE_CHANNEL_IDS`                                                                                                                                |
 
-## Local Setup Notes
-
-`npm run db:setup` does two things:
-
-1. Applies every SQL migration in `supabase/migrations` in filename order.
-2. Runs the demo seed script.
-
-Admin access:
-
-1. Create a Supabase Auth user for the admin email.
-2. Set `DEMO_ADMIN_EMAIL=you@example.com` before running `npm run db:setup`, or add the email to `public.admin_users`.
-3. Sign in at `/login`, then open `/admin`.
-
-If you only need to refresh demo data after migrations are already applied, run:
-
-```bash
-npm run db:seed
-```
 
 ## Current Flow
 
