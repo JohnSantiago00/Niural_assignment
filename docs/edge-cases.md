@@ -9,7 +9,7 @@ The project handles edge cases across the hiring pipeline with deterministic val
 | Duplicate application | Role/email duplicate protection in app logic and DB constraint. | Prevents repeated applications from creating duplicate candidate records. |
 | Closed role submit | Server rechecks role status on submission. | Avoids accepting applications for stale public pages. |
 | Resume upload succeeds but DB write fails | Best-effort storage cleanup. | Reduces orphaned private files. |
-| Gemini quota exhausted | Deterministic fallback for interview summary, offer letter, and Slack welcome copy. | Keeps QA and demo flow unblocked. |
+| Gemini quota exhausted | Deterministic fallback for interview summary, offer letter, and Slack welcome copy. | Keeps the workflow unblocked. |
 | Repeated AI action | Input fingerprints reuse existing artifacts. | Prevents unnecessary quota burn. |
 | Non-shortlisted enrichment | UI and server both block enrichment. | Keeps expensive enrichment focused on plausible candidates. |
 | Overlapping interview holds | DB-backed holds and exclusion constraint. | Prevents double booking even under concurrent actions. |
@@ -35,7 +35,7 @@ The project handles edge cases across the hiring pipeline with deterministic val
 - Unauthenticated `/admin` access redirects to login.
 - Authenticated but unauthorized users are redirected to `/not-authorized`.
 - Admin allowlist uses `public.admin_users`.
-- QA hard delete removes candidate, application, downstream workflow records, audit logs, and resume storage object.
+- Hard delete removes candidate, application, downstream workflow records, audit logs, and resume storage object.
 
 ## Screening and Enrichment
 

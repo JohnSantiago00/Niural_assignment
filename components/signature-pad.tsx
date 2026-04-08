@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Lightweight drawn-signature pad. It stays isolated so a future production
- * signing vendor or richer signature-pad package can replace it without
- * changing offer workflow state.
+ * Lightweight drawn-signature pad. It stays isolated from offer workflow state
+ * so signature UI changes cannot affect token validation or first-write signing
+ * semantics.
  */
 import { useEffect, useRef, useState } from "react";
 

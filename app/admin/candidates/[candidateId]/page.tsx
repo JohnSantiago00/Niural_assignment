@@ -1381,7 +1381,7 @@ function DangerZone({ detail }: { detail: CandidateDetailView }) {
     <section className="rounded-[2rem] border border-rose-200 bg-rose-50/90 p-6 shadow-soft">
       <h2 className="text-lg font-semibold text-rose-950">Danger zone</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-rose-900">
-        Permanently delete this QA candidate and all related application, AI,
+        Permanently delete this candidate and all related application, AI,
         scheduling, interview, audit, and resume storage data.
       </p>
       <form

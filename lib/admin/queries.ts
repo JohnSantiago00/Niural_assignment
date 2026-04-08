@@ -1,7 +1,7 @@
 /**
- * Read-only query helpers for the Phase B admin dashboard and candidate detail
- * pages. The helpers fetch raw records from Supabase and assemble small,
- * explicit view models for the UI.
+ * Read-only query helpers for the admin dashboard and candidate detail pages.
+ * The helpers fetch raw records from Supabase and assemble small, explicit
+ * view models for the UI.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getCandidateSchedulingDetail } from "@/lib/scheduling/queries";
@@ -56,8 +56,8 @@ export async function getAdminRoles(): Promise<RoleRecord[]> {
 
 /**
  * Fetches candidate rows for the dashboard and joins related application/role
- * data in memory. This keeps the query logic readable without introducing more
- * complex abstractions for a small Phase B surface area.
+ * data in memory. This keeps the query logic readable without introducing
+ * abstractions before the dashboard needs them.
  */
 export async function getCandidateDashboardRows(
   filters: CandidateDashboardFilters

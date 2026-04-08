@@ -1,4 +1,4 @@
-# Phase A QA Notes
+# Application Intake Notes
 
 ## Key behaviors
 
@@ -23,30 +23,30 @@
 
 ## Important tradeoffs
 
-- Submission orchestration stays in application code instead of moving into a database function. This keeps the behavior visible and interview-friendly.
+- Submission orchestration stays in application code instead of moving into a database function. This keeps the behavior explicit and close to the request boundary.
 - Rollback is best-effort rather than full transactional storage + DB coordination, because Supabase Storage uploads sit outside Postgres transactions.
 - Email sending is intentionally non-blocking for persistence. Candidate data matters more than delivery of the confirmation email.
 - Public role reads use the publishable key, while writes/uploads use the server-side service role key.
 
 ## Known limitations
 
-- Email content is plain text and intentionally minimal for Phase A.
+- Email content is plain text and intentionally minimal.
 - Audit log insertion is best-effort; failures are logged rather than surfaced to the candidate.
 - Duplicate protection is scoped to role + email, not to broader identity matching.
 
-## How later phases now build on this
+## How downstream workflow builds on this
 
 - Admin review UI reads the application/candidate records.
 - AI screening and enrichment attach evidence to the same candidate.
 - Scheduling, interviews, offer signing, and Slack onboarding advance the candidate from the original application record.
-- The hard-delete QA utility removes the application row too, so a reviewer can reapply with the same email and role.
+- The hard-delete utility removes the application row too, so the same email can reapply with the same role after a controlled reset.
 
-## How to explain this in an interview
+## Intake sequence
 
-Describe Phase A as a narrow, deterministic intake pipeline:
+The intake path stays narrow and deterministic:
 
 1. The candidate browses roles from a public careers page.
 2. The candidate opens a role detail page and can start an application from there.
 3. The application form performs fast client-side validation, but the server remains the source of truth.
 4. One API route owns the intake workflow: validate, re-check role state, prevent duplicates, upload the resume, create records, write an audit log, and attempt email.
-5. The architecture is intentionally simple so the behavior is easy to reason about and easy to extend in later phases.
+5. The architecture is intentionally simple so the behavior is easy to reason about and safe for downstream workflow steps.

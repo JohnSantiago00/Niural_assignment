@@ -1,6 +1,6 @@
 /**
- * Supabase Storage helpers for the private resume bucket. Phase A keeps resume
- * uploads server-side so the browser never needs privileged storage access.
+ * Supabase Storage helpers for the private resume bucket. Resume uploads stay
+ * server-side so the browser never needs privileged storage access.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getRequiredEnv } from "@/lib/utils/env";

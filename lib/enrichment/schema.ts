@@ -1,7 +1,7 @@
 /**
- * Structured output for Phase 02C profile enrichment. This is deliberately
- * separate from screening so online research can evolve independently without
- * changing the resume-scoring contract.
+ * Structured output for profile enrichment. This is deliberately separate from
+ * screening so online research can evolve independently without changing the
+ * resume-scoring contract.
  */
 import { z } from "zod";
 
@@ -16,8 +16,8 @@ const discrepancyTypeSchema = z.enum([
 ]);
 
 // Structured discrepancy flags are easier to render and defend than plain
-// strings because reviewers can quickly see the issue type, severity, and
-// source context.
+// strings because the UI can show the issue type, severity, and source context
+// clearly.
 export const discrepancyFlagSchema = z.object({
   type: discrepancyTypeSchema,
   severity: discrepancySeveritySchema,

@@ -1,9 +1,9 @@
 "use server";
 
 /**
- * Admin-only Phase 04 actions. Interview completion can be simulated for demo
- * purposes, while feedback stays deterministic and can only be saved after an
- * interview has completed.
+ * Admin-only interview actions. Interview completion stores a transcript-shaped
+ * artifact and summary, while feedback remains deterministic and can only be
+ * saved after an interview has completed.
  */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -74,9 +74,9 @@ async function markInterviewCompleted(input: {
 }) {
   const supabase = createSupabaseAdminClient();
 
-  // These writes are safe to retry and idempotent. Supabase/PostgREST can
-  // occasionally surface transient `fetch failed` errors during local QA; a
-  // short retry prevents the workflow from getting stuck after transcript save.
+  // These writes are safe to retry and idempotent. If the transcript write
+  // succeeds but a transient database request fails during status updates, a
+  // short retry prevents the candidate from getting stuck between states.
   await runSupabaseMutationWithRetry("Failed to mark interview complete", async () =>
     await supabase
       .from("interviews")
@@ -234,9 +234,9 @@ export async function simulateInterviewCompleteAction(candidateId: string) {
           throw error;
         }
 
-        // QA should not be blocked by temporary Gemini quota/high-demand errors.
-        // The transcript remains real app data; this fallback summary is clearly
-        // labeled by model_name and can be regenerated later if needed.
+        // Interview completion should not depend on provider availability. The
+        // transcript remains real app data, and the fallback summary is labeled
+        // by model_name so downstream views can distinguish it from Gemini output.
         console.warn("Gemini interview summary unavailable; using deterministic fallback", error);
         summary = buildDeterministicInterviewSummary({
           candidateName: candidate.full_name,
@@ -320,8 +320,8 @@ export async function saveInterviewFeedbackAction(candidateId: string, formData:
       throw new Error("Feedback can be submitted only after the interview is completed.");
     }
 
-    // One latest feedback record keeps the MVP simple. Re-submission updates
-    // the same interview feedback row instead of creating committee workflows.
+    // Keep one current feedback record per interview. Re-submission updates the
+    // same row so the candidate profile shows the latest interview decision.
     const { error } = await supabase.from("interview_feedback").upsert(
       {
         candidate_id: candidate.id,

@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Server actions for Phase 03 scheduling. Admin actions create options and
+ * Server actions for interview scheduling. Admin actions create options and
  * candidate actions consume a tokenized link to confirm or reschedule.
  */
 import { revalidatePath } from "next/cache";

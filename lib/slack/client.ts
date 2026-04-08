@@ -1,7 +1,7 @@
 /**
- * Small Slack Web API client for Phase 06. We use real Slack endpoints where
- * available, but keep invite capability honest because workspace invites need
- * admin scopes that many prototype workspaces do not have.
+ * Small Slack Web API client. Lookup and messaging use regular bot scopes,
+ * while workspace invites are kept separate because Slack requires admin-level
+ * capabilities that are not available in every workspace.
  */
 import crypto from "node:crypto";
 import { getOptionalEnv } from "@/lib/utils/env";

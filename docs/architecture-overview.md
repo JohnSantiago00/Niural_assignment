@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Phase-by-phase breakdown, state model, system diagram, and implementation notes for the Niural hiring workflow prototype.
+System model, workflow breakdown, integration boundaries, and implementation notes for the Niural hiring workflow.
 
 ## System Diagram
 
@@ -168,7 +168,7 @@ What happens:
 5. `interview_transcripts` stores transcript, summary, strengths, concerns, topics, and follow-up.
 6. Interview and candidate status move to completed.
 
-Key decision: transcript ingestion is simulated for the assignment, but the storage shape can support a real meeting provider later.
+Key decision: transcript ingestion is simulated, but the storage shape can support a real meeting provider later.
 
 ### Phase 05: Offer Letter and E-Signature
 
@@ -192,7 +192,7 @@ What happens:
 8. First signature wins; signed timestamp, IP, and signature image are stored.
 9. Signed-offer alert email is sent if configured.
 
-Key decision: the custom signing UI stores a PNG data URL directly on the offer row for MVP simplicity. A production version would store immutable signing artifacts in private storage.
+Key decision: the custom signing UI stores a PNG data URL directly on the offer row. A production version would store immutable signing artifacts in private storage.
 
 ### Phase 06: Slack Onboarding
 
@@ -210,7 +210,7 @@ What happens:
 3. If the candidate already exists, join state is marked immediately.
 4. If admin invite API credentials exist, app can attempt Slack admin invite.
 5. If admin invite is unavailable but `SLACK_WORKSPACE_INVITE_URL` exists, app sends a Resend invite-link email.
-6. After candidate joins, admin can click `Check Slack and send welcome` in local/demo mode.
+6. After candidate joins, admin can click `Check Slack and send welcome` when Slack events are not configured.
 7. App sends public team welcome in `SLACK_ONBOARDING_CHANNEL_ID`.
 8. App opens a DM with the candidate and sends a personal welcome.
 9. App sends HR notification if `SLACK_HR_CHANNEL_ID` is configured.
@@ -256,4 +256,4 @@ External services are useful but not authoritative:
 - Slack invite limitations are stored as onboarding follow-up state.
 - Gemini quota failure uses deterministic fallback where implemented.
 
-This keeps demos resilient and makes the workflow easier to explain under real-world provider constraints.
+This keeps the workflow resilient under real-world provider constraints.

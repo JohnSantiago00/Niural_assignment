@@ -2,7 +2,7 @@
 
 ## What this phase solves
 
-Phase A is intentionally narrow. It creates a reliable public application intake flow that is easy to demo, easy to maintain, and easy to explain in an interview.
+The intake flow creates a reliable public application path that is easy to maintain and safe to connect to the downstream hiring workflow.
 
 The system currently does four things well:
 
@@ -74,15 +74,15 @@ If Resend fails, the API still returns success for the saved application and inc
 
 ### 5. Audit logging starts early
 
-`audit_logs` is included now even though Phase A is simple. That gives a lightweight history trail and sets up future admin workflows without adding much complexity.
+`audit_logs` gives a lightweight history trail for admin workflows without adding much complexity.
 
 ## Tradeoffs
 
-- The application and candidate inserts are coordinated in server code rather than a Postgres transaction function. That keeps the logic visible and interview-friendly, but it does mean we perform best-effort cleanup if a later step fails.
+- The application and candidate inserts are coordinated in server code rather than a Postgres transaction function. That keeps the logic explicit, but it does mean we perform best-effort cleanup if a later step fails.
 - Resume storage is private and server-managed, which is secure and simple, but it requires backend upload orchestration instead of direct browser uploads.
 - Email delivery is best-effort; application persistence is more important than a confirmation email side effect.
 
-## How later phases extend it
+## How downstream workflow extends it
 
 The current application-intake records now feed:
 

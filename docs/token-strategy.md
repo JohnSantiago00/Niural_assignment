@@ -1,6 +1,6 @@
 # AI Token Strategy
 
-How the project avoids unnecessary Gemini calls, keeps QA reliable, and leaves room to scale AI usage later.
+How the project avoids unnecessary Gemini calls, keeps generated artifacts reliable, and leaves room to scale AI usage later.
 
 ## Guiding Principle
 
@@ -79,7 +79,7 @@ The fallback artifacts are labeled as deterministic fallback outputs. The app do
 
 ## What Still Uses Live Gemini
 
-Screening and enrichment are intended to demonstrate live AI behavior. If Gemini is missing or exhausted, reviewers can still inspect seeded screening/enrichment data from `npm run db:setup`.
+Screening and enrichment are intended to use live AI behavior. If Gemini is missing or exhausted, seeded screening/enrichment records from `npm run db:setup` still show the expected artifact shape.
 
 ## Scaling Plan
 

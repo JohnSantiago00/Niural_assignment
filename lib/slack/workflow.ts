@@ -1,6 +1,7 @@
 /**
- * Phase 06 Slack onboarding workflow. Supabase stores the onboarding truth;
- * Slack API calls are best-effort side effects with honest status capture.
+ * Coordinates Slack onboarding after a signed offer. Supabase stores the
+ * durable onboarding state; Slack calls are external side effects whose
+ * outcomes are recorded without rolling back the hiring workflow.
  */
 import { generateSlackWelcomeMessage } from "@/lib/gemini/generate-slack-welcome";
 import { sendSlackInviteEmail } from "@/lib/email/send-slack-invite-email";
@@ -308,9 +309,9 @@ async function sendWelcomeAndHrMessages(context: OnboardingContext, slackUserId:
   let publicWelcomeSent = false;
 
   if (!onboarding.welcome_sent_at) {
-    // Phase 06 needs both a visible team welcome and a personal welcome.
-    // The public post uses the configured onboarding channel, while the DM
-    // uses conversations.open so the new hire receives a direct app message.
+    // Send both a visible team welcome and a personal welcome. The public post
+    // uses the configured onboarding channel, while the DM uses
+    // conversations.open so the new hire receives a direct app message.
     const onboardingChannel = getOptionalEnv("SLACK_ONBOARDING_CHANNEL_ID");
     const channelDelivery = onboardingChannel
       ? await postSlackMessage({ channel: onboardingChannel, text: publicWelcomeText })
@@ -417,8 +418,9 @@ export async function checkSlackJoinForCandidate(candidateId: string) {
   const lookup = await lookupSlackUserByEmail(context.candidate.email);
 
   if (lookup.status !== "found" || !lookup.value) {
-    // If env was added after offer signing, let the admin refresh action retry
-    // the real invite or invite-link email rather than leaving old state stuck.
+    // Admin retry should re-evaluate current configuration and Slack state so
+    // a previously skipped invite can recover after credentials or invite-link
+    // settings are added.
     return attemptInviteOrEmailFallback(context);
   }
 

@@ -72,7 +72,7 @@ The fingerprint is built from normalized effective inputs, not just candidate id
 
 If the fingerprint matches an existing stored artifact, the app reuses the DB record instead of calling Gemini again. If the resume, role context, transcript, offer inputs, model, or prompt version changes, the fingerprint changes and regeneration is allowed.
 
-This was added after repeated QA runs burned through free-tier Gemini quota. It improves reliability while preserving Supabase as the workflow source of truth.
+This improves reliability under provider quota limits while preserving Supabase as the workflow source of truth.
 
 ## Fallback Behavior
 
@@ -97,7 +97,7 @@ Reasons:
 - official supported SDK
 - simple server-side integration
 - structured output support
-- fast enough for an interview prototype
+- fast enough for interactive admin workflows
 - easy to swap via `GEMINI_MODEL`
 
 ## Tradeoff

@@ -66,14 +66,14 @@ The app computes a screening fingerprint from:
 - model name
 - prompt version
 
-If the fingerprint matches the stored result, the app reuses the existing artifact instead of calling Gemini again. This reduces quota burn during repeated QA runs.
+If the fingerprint matches the stored result, the app reuses the existing artifact instead of calling Gemini again. This reduces quota burn during repeated actions.
 
 ## Known Limits
 
 - PDF extraction can be imperfect for layout-heavy resumes.
 - DOCX extraction is generally cleaner.
 - Screening is manually triggered from the admin page.
-- No background queue is used in this prototype.
+- No background queue is used in this codebase.
 
 ## Why It Is Useful
 

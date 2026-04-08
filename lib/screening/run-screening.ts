@@ -1,6 +1,6 @@
 /**
- * End-to-end Phase C1 screening workflow. This is where deterministic business
- * logic controls candidate state after the AI response is validated.
+ * End-to-end screening workflow. Deterministic business logic controls
+ * candidate state after the AI response is validated and cached by fingerprint.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { downloadResumeFile } from "@/lib/supabase/storage";

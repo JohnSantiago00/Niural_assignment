@@ -71,4 +71,4 @@ The confidence score reflects enrichment quality, not candidate quality.
 
 ## Why This Is Enough
 
-This design gives admins useful context without pretending the app has high-confidence identity graph data. It is conservative, explainable, and safe for a take-home prototype.
+This design gives admins useful context without pretending the app has high-confidence identity graph data. It stays conservative, source-bound, and clear about confidence.

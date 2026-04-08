@@ -76,7 +76,7 @@ Candidate users would remain separate from internal users.
 The upgrade path is additive:
 
 1. Add role metadata to Supabase Auth users or a new `internal_users` table.
-2. Add assignment tables for interviewer/candidate relationships.
+2. Add relationship tables for interviewer/candidate assignments.
 3. Enable RLS policies for candidate, application, offer, and feedback tables.
 4. Split admin pages by role-specific capabilities.
 5. Keep service-role operations constrained to server-only workflow helpers.
@@ -84,10 +84,10 @@ The upgrade path is additive:
 
 ## Why Not Build Full RBAC Now
 
-Full RBAC is valuable, but it would add complexity across every route and table before the assignment workflow is validated. For this prototype, the allowlist model is the right balance:
+Full RBAC is valuable, but it would add complexity across every route and table before the workflow needs that level of separation. For this codebase, the allowlist model is the right balance:
 
 - real identity
 - explicit admin access
 - small setup burden
-- easy reviewer flow
+- clear production migration path
 - clear production migration path

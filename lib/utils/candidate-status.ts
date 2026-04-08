@@ -1,7 +1,7 @@
 /**
- * Canonical workflow states for candidate lifecycle rendering. Phase B does not
- * implement every transition yet, but using explicit states now makes the admin
- * UI ready for later phases without changing the presentation model.
+ * Canonical workflow states for candidate lifecycle rendering. Keeping labels
+ * and badge classes centralized makes every surface reflect the same durable
+ * database state.
  */
 
 export const candidateWorkflowStatuses = [
@@ -61,4 +61,3 @@ export function getCandidateStatusClasses(status: CandidateWorkflowStatus) {
     } satisfies Record<CandidateWorkflowStatus, string>
   )[status];
 }
-

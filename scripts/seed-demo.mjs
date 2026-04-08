@@ -358,7 +358,7 @@ async function main() {
       shortlist_threshold: 75,
       admin_override: applicant.status !== "applied",
       admin_override_note:
-        applicant.status === "applied" ? null : "Seeded demo candidate for reviewer walkthrough."
+        applicant.status === "applied" ? null : "Seeded candidate status note."
     }))
   );
 
@@ -428,7 +428,7 @@ async function main() {
       years_experience: 8,
       education: [{ institution: "Demo Institute", degree: "BS", field: "Software Engineering", year: 2015 }],
       past_employers: [{ company: "BuildWell", title: "Staff Engineer", duration: "2019-2025" }],
-      key_achievements: ["Shipped full hiring workflow MVP", "Mentored early engineering team"],
+      key_achievements: ["Shipped full hiring workflow", "Mentored early engineering team"],
       strengths: ["High autonomy", "Excellent full-stack execution"],
       gaps: ["May prefer broad product ownership over narrow platform work"],
       fit_score: 94,
@@ -735,9 +735,9 @@ async function main() {
   }
 
   console.log("Demo seed complete.");
-  console.log("Open /admin and start with Ted Mosby or Robin Santos for later-stage demo data.");
+  console.log("Open /admin and start with Ted Mosby or Robin Santos for later-stage seeded data.");
   if (!demoAdminEmail) {
-    console.log("Optional: set DEMO_ADMIN_EMAIL in .env.local to add a reviewer email to public.admin_users.");
+    console.log("Optional: set DEMO_ADMIN_EMAIL in .env.local to add an admin email to public.admin_users.");
   }
 }
 

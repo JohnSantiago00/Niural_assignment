@@ -1,8 +1,7 @@
 /**
- * Coordinates the Phase A submission workflow from validated form input to
- * durable records in Supabase. This is the main "business flow" for the repo:
- * role check -> duplicate check -> resume upload -> application -> candidate ->
- * audit log -> confirmation email.
+ * Coordinates application submission from validated form input to durable
+ * records in Supabase: role check -> duplicate check -> resume upload ->
+ * application -> candidate -> audit log -> confirmation email.
  */
 import { sendApplicationConfirmationEmail } from "@/lib/email/send-application-confirmation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -19,9 +18,8 @@ type SubmissionResult = {
 
 /**
  * Accepts already-validated submission values from the API route and executes
- * the deterministic Phase A workflow. Future phases can extend this function
- * with scoring or downstream automation, but Phase A intentionally keeps
- * orchestration here and nowhere else.
+ * the deterministic intake workflow in one place so duplicate checks, storage,
+ * relational writes, rollback, and email side effects stay easy to reason about.
  */
 export async function submitApplication(
   input: ApplicationSubmissionValues
@@ -161,10 +159,9 @@ export async function submitApplication(
       emailError: emailResult.error
     };
   } catch (error) {
-    // Phase A keeps rollback logic readable in application code instead of
-    // hiding it in a database function. If candidate creation fails, deleting
-    // the application row also removes dependent candidate/audit rows via
-    // foreign key cascades.
+    // Keep rollback logic readable in application code instead of hiding it in
+    // a database function. If candidate creation fails, deleting the
+    // application row also removes dependent candidate/audit rows via cascades.
     if (applicationId) {
       const { error: rollbackError } = await supabase
         .from("applications")

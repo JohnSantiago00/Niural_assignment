@@ -1,6 +1,6 @@
 /**
- * Phase 05 offer workflow helpers. These functions keep signing/generation
- * deterministic: Gemini drafts text, but app code validates eligibility,
+ * Offer workflow helpers. These functions keep generation and signing
+ * deterministic: Gemini drafts text, while app code validates eligibility,
  * creates tokens, sends offers, and records signatures.
  */
 import crypto from "node:crypto";
@@ -255,9 +255,9 @@ export async function generateOfferDraft(candidateId: string, input: OfferInput)
         throw error;
       }
 
-      // Keep QA moving when Gemini is temporarily quota-limited. The offer is
-      // still generated from explicit hiring-manager inputs and is tagged with a
-      // deterministic model name so reviewers can tell it was not AI-generated.
+      // Offer delivery should not depend on provider availability. The fallback
+      // still uses explicit hiring-manager inputs and is tagged with a
+      // deterministic model name so it is distinguishable from Gemini output.
       console.warn("Gemini offer draft unavailable; using deterministic fallback", error);
       const fallback = buildDeterministicOfferLetterDraft(draftInput);
       letter = fallback.letter;

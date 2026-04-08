@@ -1,6 +1,6 @@
 /**
- * Phase 06 helper: Gemini writes the welcome-message copy only. The app still
- * decides whether the candidate has joined Slack and when messages are sent.
+ * Gemini writes Slack welcome-message copy only. The app still decides whether
+ * the candidate has joined Slack and when messages are sent.
  */
 import { z } from "zod";
 import { generateStructuredObject } from "@/lib/gemini/generate-structured";

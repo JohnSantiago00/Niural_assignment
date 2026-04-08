@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Renders the public Phase A application form. This component owns the browser
- * UX only: local form state, client-side validation, and the POST request to
- * the application API. All durable business logic still lives on the server.
+ * Renders the public application form. This component owns browser UX only:
+ * local form state, client-side validation, and the POST request to the
+ * application API. All durable business logic still lives on the server.
  */
 import type { FormEvent, HTMLInputTypeAttribute } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -74,7 +74,7 @@ export function ApplicationForm({
 
   /**
    * Validates the local form state, then sends one multipart request to the
-   * backend. The API route takes over after this and performs all Phase A
+   * backend. The API route takes over after this and performs all
    * database/storage/email work.
    */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

@@ -1,7 +1,7 @@
 /**
- * Slack Events API endpoint for Phase 06. The route validates Slack's request
- * signature before accepting join events, then lets deterministic app logic
- * decide whether the event matches an active onboarding record.
+ * Slack Events API endpoint. The route validates Slack's request signature
+ * before accepting join events, then lets deterministic app logic decide
+ * whether the event matches an active onboarding record.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { handleSlackTeamJoinEvent } from "@/lib/slack/workflow";

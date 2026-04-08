@@ -1,6 +1,6 @@
 /**
- * Phase 05 offer delivery email. The offer row and signing token remain the
- * source of truth; Resend is a best-effort candidate communication channel.
+ * Offer delivery email. The offer row and signing token remain the source of
+ * truth; Resend is a best-effort candidate communication channel.
  */
 import { Resend } from "resend";
 import { getOptionalEnv, getRequiredEnv } from "@/lib/utils/env";

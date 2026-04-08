@@ -1,7 +1,8 @@
 /**
- * Phase 04 transcript generator for the admin-only simulated completion path.
- * It intentionally does not pretend a real meeting happened; it creates a
- * grounded transcript-shaped artifact that can later be replaced by a provider.
+ * Transcript generator for the admin-only interview completion path. It does
+ * not pretend to ingest a live recording; it creates a grounded
+ * transcript-shaped artifact from the candidate, role, screening, and
+ * enrichment context.
  */
 import type {
   CandidateRecord,

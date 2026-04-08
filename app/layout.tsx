@@ -13,7 +13,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Niural Careers",
-  description: "AI-powered candidate onboarding foundation for Phase A."
+  description: "AI-powered hiring workflow for candidate intake and onboarding."
 };
 
 export default async function RootLayout({

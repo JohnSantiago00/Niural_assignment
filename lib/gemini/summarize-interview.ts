@@ -1,7 +1,7 @@
 /**
- * Gemini helper for Phase 04 interview notes. The transcript is generated or
- * supplied by the app; Gemini only turns that transcript into a bounded review
- * artifact that is validated before persistence.
+ * Gemini helper for interview notes. The transcript is supplied by the app;
+ * Gemini only turns that transcript into a bounded review artifact that is
+ * validated before persistence.
  */
 import { z } from "zod";
 import { generateStructuredObject } from "@/lib/gemini/generate-structured";
@@ -35,7 +35,7 @@ export function buildDeterministicInterviewSummary(input: {
   roleTitle: string;
 }): InterviewSummaryOutput {
   return {
-    overall_assessment: `${input.candidateName} completed the interview simulation for the ${input.roleTitle} role. The deterministic fallback summary is being used because the AI provider was temporarily unavailable during QA.`,
+    overall_assessment: `${input.candidateName} completed the interview simulation for the ${input.roleTitle} role. The deterministic fallback summary is being used because the AI provider was temporarily unavailable.`,
     strengths_observed: [
       "Discussed role fit and relevant experience in relation to the published role requirements.",
       "Showed willingness to clarify expectations and ramp quickly where gaps exist.",
@@ -52,9 +52,9 @@ export function buildDeterministicInterviewSummary(input: {
     ],
     recommended_follow_up: [
       "Review the transcript preview before making a final hiring decision.",
-      "Retry AI summarization later if a richer interview artifact is needed."
+      "Retry AI summarization when provider capacity is available if a richer interview artifact is needed."
     ],
-    concise_summary: `${input.candidateName} completed the interview step for the ${input.roleTitle} role. A deterministic QA fallback summary was saved so the hiring workflow can continue while the AI quota resets.`
+    concise_summary: `${input.candidateName} completed the interview step for the ${input.roleTitle} role. A deterministic fallback summary was saved so the hiring workflow can continue while AI quota resets.`
   };
 }
 

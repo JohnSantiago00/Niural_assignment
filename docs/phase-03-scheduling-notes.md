@@ -137,7 +137,7 @@ than in email delivery.
 
 ## What is simplified vs production-grade
 
-Simplified for this prototype:
+Current simplifications:
 
 - interviewer availability still uses fixed workday windows, but only inside
   the open gaps returned by Google Calendar free/busy
@@ -146,7 +146,7 @@ Simplified for this prototype:
 - reschedule uses AI only to summarize candidate timing preferences, not to invent or finalize slots
 - confirmed reschedules do not yet cancel or update an existing Google Calendar event automatically
 
-## Manual QA
+## Manual Checks
 
 1. Offer interview slots for a shortlisted candidate from the admin page.
 2. Confirm the candidate receives the scheduling link email or the admin sees a clear best-effort delivery warning.

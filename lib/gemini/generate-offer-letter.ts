@@ -1,7 +1,7 @@
 /**
- * Gemini helper for Phase 05 offer drafting. Gemini writes only the offer
- * letter text from explicit admin inputs and candidate context; app code owns
- * status transitions, sending, and signature validation.
+ * Gemini helper for offer drafting. Gemini writes only the offer letter text
+ * from explicit admin inputs and candidate context; app code owns status
+ * transitions, sending, and signature validation.
  */
 import { z } from "zod";
 import { generateStructuredObject } from "@/lib/gemini/generate-structured";

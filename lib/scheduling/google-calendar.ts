@@ -1,8 +1,7 @@
 /**
- * Minimal Google Calendar integration for Phase 03. Google Calendar provides
- * real free/busy data and confirmed event creation, while our own DB-backed
- * hold system remains the source of truth for temporary reservation and
- * conflict prevention.
+ * Google Calendar integration for scheduling. Google provides real free/busy
+ * data and confirmed event creation, while the DB-backed hold system remains
+ * the source of truth for temporary reservations and conflict prevention.
  */
 import crypto from "node:crypto";
 import { google } from "googleapis";
@@ -354,7 +353,7 @@ export async function createCalendarInterviewEvent(input: {
       : fullWarning;
 
     try {
-      // Personal Gmail/shared-calendar MVPs can create events with a service
+      // Personal Gmail/shared-calendar setups can create events with a service
       // account, but Google blocks attendee invites without Workspace
       // Domain-Wide Delegation. The fallback is intentionally plain: no
       // attendees, no Meet, no sendUpdates. It only counts as success when

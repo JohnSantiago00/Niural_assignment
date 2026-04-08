@@ -1,8 +1,6 @@
-# Niural Hiring Workflow Prototype
+# Niural Hiring Workflow
 
-An end-to-end hiring workflow prototype for application intake, AI screening and enrichment, interview scheduling, interview evaluation, offer generation/signing, and Slack onboarding.
-
-> Built as a take-home assignment for the AI Product Operator role at Niural.
+An end-to-end hiring workflow for application intake, AI screening and enrichment, interview scheduling, interview evaluation, offer generation/signing, and Slack onboarding.
 
 ## Quick Start
 
@@ -70,7 +68,7 @@ Workflow truth stays in Supabase. Gemini, Resend, Google Calendar, and Slack are
 
 | Technology | Why it is used |
 | --- | --- |
-| Next.js App Router | Public pages, admin pages, server actions, and API routes in one interview-friendly codebase. |
+| Next.js App Router | Public pages, admin pages, server actions, and API routes in one cohesive codebase. |
 | TypeScript | Explicit workflow records, AI artifacts, and Supabase row types. |
 | Tailwind CSS | Shared visual system across public, admin, interview, and offer pages. |
 | Supabase Postgres | Durable workflow state, migrations, admin allowlist, and candidate lifecycle records. |
@@ -88,9 +86,9 @@ Workflow truth stays in Supabase. Gemini, Resend, Google Calendar, and Slack are
 
 - **Deterministic workflow state:** Supabase records own candidate status, offer status, scheduling status, and onboarding status.
 - **AI as artifact generation:** Gemini writes summaries/drafts; app logic decides transitions.
-- **Reviewer-friendly setup:** `npm run db:setup` applies migrations and seeds demo data with one command.
+- **One-command setup:** `npm run db:setup` applies migrations and seeds data with one command.
 - **Real integrations where practical:** Resend, Google Calendar, and Slack are wired as real provider integrations, while the app remains testable when optional credentials are absent.
-- **Small architecture surface:** Next.js server actions and API routes keep the prototype easy to inspect without adding queues, workers, or extra services.
+- **Small architecture surface:** Next.js server actions and API routes keep the system easy to inspect without adding queues, workers, or extra services.
 
 ## AI Usage
 
@@ -117,7 +115,7 @@ More detail: [docs/ai-usage.md](docs/ai-usage.md) and [docs/token-strategy.md](d
 | Area | What is real | What is simplified |
 | --- | --- | --- |
 | Applications | Real public form, Supabase records, resume storage | Resume parsing remains lightweight for demo use. |
-| Screening | Real Gemini calls when configured | Deterministic fallback keeps QA moving when Gemini is quota-limited. |
+| Screening | Real Gemini calls when configured | Deterministic fallback keeps the workflow moving when Gemini is quota-limited. |
 | Enrichment | Real structured enrichment artifact flow | Conservative lightweight enrichment; no LinkedIn/GitHub partner APIs. |
 | Scheduling | Real DB holds and Google Calendar integration when configured | One configured calendar instead of per-interviewer OAuth. |
 | Interview | Transcript and summary records are persisted | Transcript source is simulated, not a live meeting bot. |
@@ -144,7 +142,7 @@ Optional for admin convenience:
 
 | Variable | Purpose |
 | --- | --- |
-| `DEMO_ADMIN_EMAIL` | Adds a reviewer email to `public.admin_users` during seed. The Supabase Auth user still needs to exist. |
+| `DEMO_ADMIN_EMAIL` | Adds an admin email to `public.admin_users` during seed. The Supabase Auth user still needs to exist. |
 
 ### Optional For Full Integrations
 
@@ -165,7 +163,7 @@ Optional for admin convenience:
 
 Admin access:
 
-1. Create a Supabase Auth user for the reviewer/admin email.
+1. Create a Supabase Auth user for the admin email.
 2. Set `DEMO_ADMIN_EMAIL=you@example.com` before running `npm run db:setup`, or add the email to `public.admin_users`.
 3. Sign in at `/login`, then open `/admin`.
 
@@ -225,12 +223,12 @@ The seed script is idempotent for its fixed demo records. It clears and recreate
 | Decision | Tradeoff |
 | --- | --- |
 | Supabase owns workflow truth | External provider failures do not corrupt state, but some integrations require follow-up/retry handling. |
-| Gemini is bounded to artifact generation | AI is safer and easier to explain, but the app needs deterministic orchestration around it. |
-| Input fingerprint caching | Reduces Gemini quota burn during repeated QA, but requires tracking prompt versions and effective inputs. |
+| Gemini is bounded to artifact generation | AI is safer and easier to audit, but the app needs deterministic orchestration around it. |
+| Input fingerprint caching | Reduces Gemini quota burn during repeated actions, but requires tracking prompt versions and effective inputs. |
 | DB-backed scheduling holds | Prevents double booking while candidates decide, but adds state that must be cleaned/released. |
 | Canvas signature instead of e-sign vendor | Great for a self-contained demo, but production would likely add PDF artifacting and stronger legal controls. |
 | Slack invite-link fallback | Honest when admin invite APIs are unavailable, but candidate join detection needs either admin check or Events API in deployed mode. |
-| Simulated interview transcript | Keeps Phase 04 demoable without a meeting bot, but a real transcript provider would be next for production. |
+| Simulated interview transcript | Keeps interview evaluation runnable without a meeting bot, but a real transcript provider would be next for production. |
 
 More decision notes: [docs/decisions.md](docs/decisions.md)
 
@@ -251,11 +249,11 @@ More decision notes: [docs/decisions.md](docs/decisions.md)
 
 ## Known Limitations
 
-- This is a prototype, not enterprise-grade RBAC.
+- Admin access is intentionally lightweight, not enterprise-grade RBAC.
 - Enrichment is lightweight and conservative; it does not use official LinkedIn/GitHub partner APIs.
 - Google Calendar uses one configured calendar rather than full per-interviewer OAuth.
 - Personal Gmail service-account attendee invites are limited without Google Workspace delegation.
-- Offer signatures are stored as PNG data URLs on the offer row for MVP simplicity.
+- Offer signatures are stored as PNG data URLs on the offer row for implementation simplicity.
 - Slack admin invite APIs depend on workspace plan/scopes; the app records limitations instead of faking success.
 
 
