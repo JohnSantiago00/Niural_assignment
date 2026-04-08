@@ -1,8 +1,6 @@
 # Niural Hiring Workflow Prototype
 
-An end-to-end hiring workflow prototype for the Niural AI Product Operator assignment. It covers the full journey from public job discovery and application intake through admin screening, enrichment, scheduling, interview summary, offer signing, and Slack onboarding.
-
-Workflow truth stays in Supabase. Gemini, Resend, Google Calendar, and Slack are integration layers around deterministic app state rather than the source of truth.
+An end-to-end hiring workflow prototype for application intake, AI screening and enrichment, interview scheduling, interview evaluation, offer generation/signing, and Slack onboarding.
 
 > Built as a take-home assignment for the AI Product Operator role at Niural.
 
@@ -18,20 +16,31 @@ npm run db:setup
 npm run dev
 ```
 
-Visit:
+## Visit
 
-- [http://localhost:3000/careers](http://localhost:3000/careers) — public careers experience
+- [http://localhost:3000/careers](http://localhost:3000/careers) — public careers flow
 - [http://localhost:3000/admin](http://localhost:3000/admin) — admin hiring portal
 
-Demo candidates to inspect:
+## Demo Guide
 
-- `Robin Santos` — signed offer + Slack onboarding complete
-- `Ted Mosby` — interview summary + offer sent
-- `Priya Shah` — scheduled interview
-- `Jordan Lee` — shortlisted + enrichment
-- `Maya Chen` — newly applied candidate
+After running `npm run db:setup`, open `/admin` and inspect these seeded candidates first:
 
-Commands:
+| Candidate | Best for reviewing |
+| --- | --- |
+| Robin Santos | Signed offer + Slack onboarding complete |
+| Ted Mosby | Interview summary + offer sent |
+| Priya Shah | Scheduled interview |
+| Jordan Lee | Shortlisted + enrichment |
+| Maya Chen | Newly applied candidate |
+
+Quick path:
+
+1. Open `/careers` to review the public candidate experience.
+2. Open `/admin` to review the internal hiring portal.
+3. Click `Ted Mosby` or `Robin Santos` for late-stage workflow data.
+4. Click `Maya Chen` to run early-stage actions from a fresh applied state.
+
+## Commands
 
 ```bash
 npm run dev          # start the local app
@@ -42,62 +51,131 @@ npm run typecheck    # TypeScript check
 npm run build        # production build
 ```
 
+## Project Overview
+
+The product models a realistic hiring pipeline:
+
+- Public role discovery and application intake
+- Resume upload and duplicate application protection
+- AI-assisted screening and candidate enrichment
+- Admin shortlist decisions and workflow audit history
+- Interview slot offering, candidate selection, and reschedule handling
+- Interview transcript simulation, summary, and evaluation state
+- Offer generation, email delivery, and custom canvas e-signature
+- Slack onboarding after signed offer
+
+Workflow truth stays in Supabase. Gemini, Resend, Google Calendar, and Slack are integration layers around deterministic app state rather than the source of truth.
+
 ## Tech Stack
 
-| Technology | Why this, not the alternative |
+| Technology | Why it is used |
 | --- | --- |
-| Next.js App Router | Keeps public pages, admin pages, server actions, and API routes in one interview-friendly codebase. |
-| TypeScript | Keeps workflow objects, AI outputs, and Supabase records explicit as the pipeline grows. |
-| Tailwind CSS | Fast visual iteration with shared design primitives for public, admin, interview, and offer pages. |
+| Next.js App Router | Public pages, admin pages, server actions, and API routes in one interview-friendly codebase. |
+| TypeScript | Explicit workflow records, AI artifacts, and Supabase row types. |
+| Tailwind CSS | Shared visual system across public, admin, interview, and offer pages. |
 | Supabase Postgres | Durable workflow state, migrations, admin allowlist, and candidate lifecycle records. |
-| Supabase Storage | Private resume upload storage without adding a separate file service. |
+| Supabase Storage | Private resume upload storage without a separate file service. |
 | Supabase Auth | Real admin identity instead of a shared admin password. |
-| Gemini via `@google/genai` | Bounded AI generation for screening, enrichment, interview summaries, offer letters, and Slack welcome copy. |
+| Gemini via `@google/genai` | Bounded generation for screening, enrichment, interview summaries, offer letters, and Slack welcome copy. |
 | Resend | Candidate/admin transactional emails with best-effort delivery handling. |
 | Google Calendar API | Free/busy lookup and interview event creation when configured. |
-| Slack Web API | Real user lookup, onboarding channel/DM messages, and HR notifications when configured. |
-| Zod | Validates structured AI output before database writes. |
-| `postgres` | Lightweight direct SQL runner for `npm run db:setup` without Supabase CLI. |
-| Canvas signature pad | Real drawn-signature experience for the custom offer signing requirement. |
+| Slack Web API | User lookup, onboarding channel/DM messages, and HR notifications when configured. |
+| Zod | Structured AI output validation before database writes. |
+| `postgres` | Lightweight SQL runner for `npm run db:setup` without requiring Supabase CLI. |
+| Canvas signature pad | Custom drawn-signature experience for offer signing. |
 
-## Architecture
+## Why This Stack
 
-```text
-Candidate/Public
-  /careers
-  /careers/[roleId]
-  /apply
-  /interview/[selectionToken]
-  /offer/[signingToken]
+- **Deterministic workflow state:** Supabase records own candidate status, offer status, scheduling status, and onboarding status.
+- **AI as artifact generation:** Gemini writes summaries/drafts; app logic decides transitions.
+- **Reviewer-friendly setup:** `npm run db:setup` applies migrations and seeds demo data with one command.
+- **Real integrations where practical:** Resend, Google Calendar, and Slack are wired as real provider integrations, while the app remains testable when optional credentials are absent.
+- **Small architecture surface:** Next.js server actions and API routes keep the prototype easy to inspect without adding queues, workers, or extra services.
 
-Admin
-  /admin
-  /admin/candidates/[candidateId]
+## AI Usage
 
-Next.js App Router
-  Server Actions
-  API Routes
-  Server Components
-  Shared UI primitives
+Gemini is used for:
 
-Workflow helpers
-  lib/applications
-  lib/screening
-  lib/enrichment
-  lib/scheduling
-  lib/interview
-  lib/offers
-  lib/slack
+- Screening fit analysis
+- Candidate enrichment summaries
+- Reschedule preference extraction
+- Interview transcript summaries
+- Offer letter drafting
+- Slack welcome copy
 
-Integrations
-  Supabase Postgres + Storage + Auth
-  Gemini
-  Resend
-  Google Calendar
-  Slack
+AI outputs are constrained with:
+
+- Zod validation for structured responses
+- Prompt versions and input fingerprints for cache reuse
+- Deterministic fallbacks for quota-limited or temporarily unavailable calls
+- Server-side workflow guards so model output never directly changes status
+
+More detail: [docs/ai-usage.md](docs/ai-usage.md) and [docs/token-strategy.md](docs/token-strategy.md)
+
+## Real vs Mocked
+
+| Area | What is real | What is simplified |
+| --- | --- | --- |
+| Applications | Real public form, Supabase records, resume storage | Resume parsing remains lightweight for demo use. |
+| Screening | Real Gemini calls when configured | Deterministic fallback keeps QA moving when Gemini is quota-limited. |
+| Enrichment | Real structured enrichment artifact flow | Conservative lightweight enrichment; no LinkedIn/GitHub partner APIs. |
+| Scheduling | Real DB holds and Google Calendar integration when configured | One configured calendar instead of per-interviewer OAuth. |
+| Interview | Transcript and summary records are persisted | Transcript source is simulated, not a live meeting bot. |
+| Offer signing | Real tokenized signing page and canvas signature capture | No generated PDF artifact yet. |
+| Email | Real Resend delivery when configured | Workflow state remains testable without real email delivery. |
+| Slack | Real lookup and messaging when configured | Admin invite API is optional; invite-link email fallback is used when admin invite scopes are unavailable. |
+
+## Environment Variables
+
+### Required For Local Demo
+
+These are enough to boot the app, run `npm run db:setup`, seed demo data, and inspect the main flows.
+
+| Variable | Purpose |
+| --- | --- |
+| `APP_BASE_URL` | Local/public base URL for generated links, usually `http://localhost:3000`. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Browser/server publishable Supabase key. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only key for privileged workflows and seeding. |
+| `SUPABASE_DB_URL` | Direct Postgres connection used by `npm run db:setup` to apply migrations. |
+| `SUPABASE_RESUME_BUCKET` | Resume storage bucket, usually `candidate-resumes`. |
+
+Optional for admin convenience:
+
+| Variable | Purpose |
+| --- | --- |
+| `DEMO_ADMIN_EMAIL` | Adds a reviewer email to `public.admin_users` during seed. The Supabase Auth user still needs to exist. |
+
+### Optional For Full Integrations
+
+| Integration | Variables |
+| --- | --- |
+| Gemini | `GEMINI_API_KEY`, `GEMINI_MODEL` |
+| Resend | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `OFFER_ALERT_EMAIL` |
+| Google Calendar | `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CALENDAR_ID`, `GOOGLE_CALENDAR_INTERVIEWER_NAME`, `GOOGLE_CALENDAR_INTERVIEWER_EMAIL`, `GOOGLE_IMPERSONATED_USER_EMAIL`, `GOOGLE_TIMEZONE` |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_WORKSPACE_INVITE_URL`, `SLACK_HR_CHANNEL_ID`, `SLACK_ONBOARDING_CHANNEL_ID`, `SLACK_ONBOARDING_RESOURCE_LINKS` |
+| Slack admin invite support | `SLACK_ADMIN_TOKEN`, `SLACK_TEAM_ID`, `SLACK_INVITE_CHANNEL_IDS` |
+
+## Local Setup Notes
+
+`npm run db:setup` does two things:
+
+1. Applies every SQL migration in `supabase/migrations` in filename order.
+2. Runs the demo seed script.
+
+Admin access:
+
+1. Create a Supabase Auth user for the reviewer/admin email.
+2. Set `DEMO_ADMIN_EMAIL=you@example.com` before running `npm run db:setup`, or add the email to `public.admin_users`.
+3. Sign in at `/login`, then open `/admin`.
+
+If you only need to refresh demo data after migrations are already applied, run:
+
+```bash
+npm run db:seed
 ```
 
-Pipeline:
+## Current Flow
 
 ```text
 applied
@@ -111,107 +189,7 @@ applied
   -> Slack onboarding
 ```
 
-Full architecture details: [docs/architecture-overview.md](docs/architecture-overview.md)
-
-## Key Decisions
-
-| Decision | What I chose | Why |
-| --- | --- | --- |
-| Workflow ownership | Supabase records + deterministic server logic | External providers can fail or delay; workflow state should remain explainable and recoverable. |
-| AI boundaries | Gemini generates artifacts, app logic owns transitions | Prevents model output from directly changing candidate status, offers, or onboarding state. |
-| Screening reuse | `input_fingerprint` + `prompt_version` | Repeated QA clicks reuse existing AI artifacts instead of burning quota. |
-| Scheduling | DB-backed holds + Google Calendar free/busy | Google free/busy is not a reservation system; DB holds prevent double booking while candidates decide. |
-| Offer signing | In-app canvas signature pad | Satisfies custom e-signature requirement without DocuSign/PandaDoc/HelloSign setup. |
-| Slack invite fallback | Resend email with configured Slack invite URL | Slack admin invite APIs are workspace/scopes dependent, so the app does not fake success. |
-| Admin access | Supabase Auth + `admin_users` allowlist | More realistic than a shared password while still simple enough for the prototype. |
-| Setup | `npm run db:setup` | Reviewer can apply migrations and seed demo data without the Supabase CLI or manual SQL editor steps. |
-
-More decision notes: [docs/decisions.md](docs/decisions.md)
-
-## Local Setup
-
-Minimum required `.env.local` values:
-
-```bash
-APP_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_DB_URL=
-SUPABASE_RESUME_BUCKET=candidate-resumes
-```
-
-`SUPABASE_DB_URL` is the direct Postgres connection string from Supabase Project Settings -> Database. It is used only by `npm run db:setup` to apply SQL migrations automatically. Runtime app code still uses the Supabase URL and keys.
-
-Admin access:
-
-1. Create a Supabase Auth user for your reviewer/admin email.
-2. Either add the email manually to `public.admin_users`, or set `DEMO_ADMIN_EMAIL=you@example.com` before running `npm run db:setup`.
-3. Sign in at `/login`, then open `/admin`.
-
-## Demo Seed Data
-
-`npm run db:setup` applies all migrations and then runs the demo seed. `npm run db:seed` only reseeds demo records.
-
-The seed includes:
-
-- 3 open roles: AI Product Operator, Founding Full-Stack Engineer, Technical Recruiter
-- 1 closed role: People Operations Analyst
-- 5 demo candidates across workflow states
-- screening results
-- research profiles
-- interviews and calendar holds
-- interview transcripts
-- interviewer feedback for one candidate
-- sent and signed offer records
-- completed Slack onboarding state
-- audit logs for realistic admin timelines
-
-The seed script is idempotent for its fixed demo records. It clears and recreates those demo candidates/applications before inserting fresh demo data.
-
-## Environment Variables
-
-| Variable | Required for demo | Purpose |
-| --- | --- | --- |
-| `APP_BASE_URL` | Yes | Local/public base URL for generated links. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Yes | Browser/server publishable Supabase key. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only service role key for privileged workflows and seeding. |
-| `SUPABASE_DB_URL` | Yes | Direct Postgres connection for `npm run db:setup`. |
-| `SUPABASE_RESUME_BUCKET` | Yes | Private resume storage bucket. |
-| `DEMO_ADMIN_EMAIL` | No | Adds a reviewer email to `public.admin_users` during seed. |
-| `GEMINI_API_KEY` | No | Live Gemini calls. Fallbacks keep some flows testable if missing/quota-limited. |
-| `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash`. |
-| `RESEND_API_KEY` | No | Real email delivery. |
-| `RESEND_FROM_EMAIL` | No | Sender address for Resend emails. |
-| `OFFER_ALERT_EMAIL` | No | Signed-offer alert recipient override. |
-| `GOOGLE_CLIENT_EMAIL` | No | Google service account email. |
-| `GOOGLE_PRIVATE_KEY` | No | Google service account private key. |
-| `GOOGLE_CALENDAR_ID` | No | Calendar used for free/busy and event creation. |
-| `GOOGLE_CALENDAR_INTERVIEWER_NAME` | No | Display name for interview scheduling. |
-| `GOOGLE_CALENDAR_INTERVIEWER_EMAIL` | No | Interviewer email fallback. |
-| `GOOGLE_IMPERSONATED_USER_EMAIL` | No | Optional Workspace delegated user. |
-| `GOOGLE_TIMEZONE` | No | Scheduling timezone. |
-| `SLACK_BOT_TOKEN` | No | Slack lookup and messaging. |
-| `SLACK_SIGNING_SECRET` | No | Slack Events API signature verification. |
-| `SLACK_WORKSPACE_INVITE_URL` | No | Invite-link fallback email when admin invites are unavailable. |
-| `SLACK_HR_CHANNEL_ID` | No | HR/internal notification channel. |
-| `SLACK_ONBOARDING_CHANNEL_ID` | No | Public team welcome channel. |
-| `SLACK_ONBOARDING_RESOURCE_LINKS` | No | Optional links included in welcome copy. |
-| `SLACK_ADMIN_TOKEN` | No | Optional admin invite API support. |
-| `SLACK_TEAM_ID` | No | Required only with Slack admin invite support. |
-| `SLACK_INVITE_CHANNEL_IDS` | No | Required only with Slack admin invite support. |
-
-## Demo Mode Behavior
-
-You can review the product without configuring every external integration.
-
-- Gemini missing/quota-limited: interview summaries, offer letters, and Slack welcome copy use deterministic fallbacks where implemented.
-- Resend missing: workflow state remains testable, but real emails are skipped or marked for follow-up.
-- Google Calendar missing: seeded demo states still work; live slot generation/event creation needs Google Calendar env.
-- Personal Gmail + service-account Google Calendar: attendee invites may be limited without Google Workspace delegation; the app can still store DB scheduling state and create plain fallback events when configured.
-- Slack admin invite unavailable: the app does not fake success. Configure `SLACK_WORKSPACE_INVITE_URL` to send an invite-link email, then use Slack lookup/messaging after the candidate joins.
-- Interview notetaker provider: Phase 04 uses a simulated transcript path for demo. The storage shape is ready for a real provider later.
+Architecture details: [docs/architecture-overview.md](docs/architecture-overview.md)
 
 ## Features By Phase
 
@@ -224,34 +202,39 @@ You can review the product without configuring every external integration.
 | Phase 05: Offer + signing | Hiring-manager offer input, generated offer letter, tokenized signing page, canvas signature, timestamp/IP capture, signed alert. |
 | Phase 06: Slack onboarding | Offer-signed trigger, Slack onboarding records, invite-link email fallback, Slack lookup, team welcome, candidate DM, HR notification. |
 
-## Demo Flows To Test
+## Demo Data
 
-Quick review:
+The seed includes:
 
-1. Open `/careers`.
-2. Open a role and submit a new application.
-3. Sign in and open `/admin`.
-4. Click `Ted Mosby` or `Robin Santos` to inspect late-stage demo data.
-5. Click `Maya Chen` to run early workflow actions from a fresh applied state.
+- 3 open roles: AI Product Operator, Founding Full-Stack Engineer, Technical Recruiter
+- 1 closed role: People Operations Analyst
+- 5 demo candidates across applied, shortlisted, scheduled, offer sent, and offer signed states
+- Screening results
+- Research profiles
+- Interviews and calendar holds
+- Interview transcripts
+- Interview feedback for one candidate
+- Sent and signed offer records
+- Slack onboarding state
+- Audit logs for realistic admin timelines
 
-End-to-end flow:
+The seed script is idempotent for its fixed demo records. It clears and recreates those demo candidates/applications before inserting fresh demo data.
 
-1. Apply as a fresh candidate.
-2. Run screening.
-3. Shortlist or override.
-4. Offer interview slots.
-5. Open the tokenized interview link and confirm a slot.
-6. Simulate interview completion.
-7. Send offer.
-8. Open the tokenized offer link and sign with the canvas signature pad.
-9. If Slack is configured, invite the candidate and click `Check Slack and send welcome` after they join.
+## Key Tradeoffs / Assumptions
 
-QA reset:
+| Decision | Tradeoff |
+| --- | --- |
+| Supabase owns workflow truth | External provider failures do not corrupt state, but some integrations require follow-up/retry handling. |
+| Gemini is bounded to artifact generation | AI is safer and easier to explain, but the app needs deterministic orchestration around it. |
+| Input fingerprint caching | Reduces Gemini quota burn during repeated QA, but requires tracking prompt versions and effective inputs. |
+| DB-backed scheduling holds | Prevents double booking while candidates decide, but adds state that must be cleaned/released. |
+| Canvas signature instead of e-sign vendor | Great for a self-contained demo, but production would likely add PDF artifacting and stronger legal controls. |
+| Slack invite-link fallback | Honest when admin invite APIs are unavailable, but candidate join detection needs either admin check or Events API in deployed mode. |
+| Simulated interview transcript | Keeps Phase 04 demoable without a meeting bot, but a real transcript provider would be next for production. |
 
-- Use the candidate detail danger zone to hard-delete a test candidate and related downstream records.
-- This deletes the application row too, so the same email can apply again for the same role.
+More decision notes: [docs/decisions.md](docs/decisions.md)
 
-## Documentation
+## Useful Docs
 
 | Document | What it covers |
 | --- | --- |
@@ -277,7 +260,7 @@ QA reset:
 - Slack admin invite APIs depend on workspace plan/scopes; the app records limitations instead of faking success.
 - No full PDF offer artifact has been added yet.
 
-## What I Would Build Next
+## Next Steps
 
 1. Production RBAC with hiring-manager/interviewer roles and row-level security.
 2. Real transcript ingestion from a meeting notetaker provider.
