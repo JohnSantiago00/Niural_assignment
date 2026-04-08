@@ -252,18 +252,16 @@ More decision notes: [docs/decisions.md](docs/decisions.md)
 ## Known Limitations
 
 - This is a prototype, not enterprise-grade RBAC.
-- Phase 04 uses simulated transcripts instead of a real meeting bot.
 - Enrichment is lightweight and conservative; it does not use official LinkedIn/GitHub partner APIs.
 - Google Calendar uses one configured calendar rather than full per-interviewer OAuth.
 - Personal Gmail service-account attendee invites are limited without Google Workspace delegation.
 - Offer signatures are stored as PNG data URLs on the offer row for MVP simplicity.
 - Slack admin invite APIs depend on workspace plan/scopes; the app records limitations instead of faking success.
-- No full PDF offer artifact has been added yet.
+
 
 ## Next Steps
 
 1. Production RBAC with hiring-manager/interviewer roles and row-level security.
-2. Real transcript ingestion from a meeting notetaker provider.
-3. Offer PDF artifact generation and private signature storage.
+2. Offer PDF artifact generation and private signature storage.
 4. Per-interviewer calendar OAuth instead of one configured calendar.
 5. More robust onboarding checklist after Slack welcome.
