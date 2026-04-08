@@ -255,7 +255,6 @@ More decision notes: [docs/decisions.md](docs/decisions.md)
 - Enrichment is lightweight and conservative; it does not use official LinkedIn/GitHub partner APIs.
 - Google Calendar uses one configured calendar rather than full per-interviewer OAuth.
 - Personal Gmail service-account attendee invites are limited without Google Workspace delegation.
-- Offer signatures are stored as PNG data URLs on the offer row for MVP simplicity.
 - Slack admin invite APIs depend on workspace plan/scopes; the app records limitations instead of faking success.
 
 
