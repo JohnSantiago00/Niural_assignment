@@ -8,3 +8,8 @@ dist
 *.log
 *.tsbuildinfo
 supabase/.temp
+
+# OpenClaw agent memory artifacts (not project source)
+DREAMS.md
+memory/
+.dreams/
